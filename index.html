@@ -308,7 +308,12 @@ footer{ text-align:center; color:#666; font-size:12px; padding:36px 20px 20px; }
 <!-- ============ 首页 ============ -->
 <section id="page-home" class="page active">
   <div id="heroArea"></div>
-  <div id="homeRows"></div>
+  <div id="homeRows">
+    <div id="rowLatest"></div>
+    <div id="rowTop"></div>
+    <div id="rowMovies"></div>
+    <div id="rowTv"></div>
+  </div>
 </section>
 
 <!-- ============ 电影页 ============ -->
@@ -1290,6 +1295,7 @@ async function removeCached(url, btn){
 
 /* ---------- 13. 初始化 ---------- */
 async function init(){
+  bindEvents(); // 绑定导航/搜索/设置等事件（DOM 已就绪）
   // 设置模式：有 Key 用 TMDB，无 Key 演示
   currentMode = tmdbKey ? "tmdb" : "demo";
   applyMode();
