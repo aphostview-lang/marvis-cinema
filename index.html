@@ -4,8 +4,24 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Marvis Cinema - 自用影视</title>
-<!-- hls.js CDN：用于播放 m3u8 直播/切片流 -->
-<script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
+<!-- hls.js CDN：用于播放 m3u8 直播/切片流（jsdelivr 失败自动回退国内/备用 CDN） -->
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1" onerror="loadHlsFallback()"></script>
+<script>
+function loadHlsFallback(){
+  if(window.Hls) return;
+  var urls=["https://cdn.bootcdn.net/ajax/libs/hls.js/1.5.13/hls.min.js","https://unpkg.com/hls.js@1/dist/hls.min.js"];
+  var i=0;
+  (function next(){
+    if(i>=urls.length||window.Hls) return;
+    var s=document.createElement("script");
+    s.src=urls[i++];
+    s.onload=function(){ if(!window.Hls) next(); };
+    s.onerror=next;
+    document.head.appendChild(s);
+  })();
+}
+document.addEventListener("DOMContentLoaded", function(){ if(!window.Hls) loadHlsFallback(); });
+</script>
 <style>
 /* ============ 全局样式（奈飞风格深色 UI） ============ */
 *{ margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
@@ -426,11 +442,16 @@ const IS_PREVIEW = location.hash.indexOf("preview") > -1; // #preview 截图模�
 
 /* ---------- 2. 演示数据（真实知名影视，海报渐变占位） ---------- */
 const TEST_STREAMS = [
-  "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
-  "https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8",
-  "https://bitdash-a.akamaihd.net/content/sintel/hls/playlist.m3u8",
-  "https://cph-p2p-msl.akamaized.net/hls/live/2000341/test/master.m3u8",
-  "https://test-streams.mux.dev/test_001/stream.m3u8"
+  // HLS m3u8 测试流（2026-09 已验证：https + CORS 放行，可直连）
+  "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",                                                       // [已验证] mux 测试片
+  "https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8",     // [已验证] Tears of Steel
+  "https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/bipbop_16x9_variant.m3u8",         // [已验证] Apple 官方示例
+  "https://cph-p2p-msl.akamaized.net/hls/live/2000341/test/master.m3u8",                                     // [已验证] 直播测试流（CORS 放行 GitHub Pages 域名）
+  "https://test-streams.mux.dev/test_001/stream.m3u8",                                                       // [已验证] mux 测试片 2
+  // MP4 直链（原生 video 播放，不依赖 hls.js，作兜底）
+  "https://vjs.zencdn.net/v/oceans.mp4",                                                                     // [已验证] oceans.mp4
+  "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4",                                // [已验证] MDN flower.mp4
+  "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/friday.mp4"                                 // [已验证] MDN friday.mp4
 ];
 const PALETTE = [
   ["#5c2a2a","#141414"],["#1f3a5f","#0d1b2a"],["#3d2b56","#1a1025"],
@@ -526,7 +547,32 @@ const DEMO_DATA = [
   { id:2007, type:"tv", title:"王冠", poster:"https://image.tmdb.org/t/p/w500/yndvBGfD2S09kv89uSCHQyDyYWy.jpg", year:2016, rating:8.7, genres:["剧情","历史"],    overview:"伊丽莎白二世登基后的王室风云，个人情感与公共职责在历史洪流中反复碰撞。",
     cast:["克莱尔·芙伊","马特·史密斯","奥利维娅·科尔曼"], videoUrl:TEST_STREAMS[4] },
   { id:2003, type:"tv", title:"老友记", poster:"https://image.tmdb.org/t/p/w500/iDdFfZB5sexPhDOvacEhWWvgxel.jpg", year:1994, rating:9.7, genres:["喜剧","爱情"],    overview:"六位好友在纽约曼哈顿的日常生活，关于友情、爱情与成长的笑泪交织。",
-    cast:["詹妮弗·安妮斯顿","柯特妮·考克斯","丽莎·库卓"], videoUrl:TEST_STREAMS[0] }
+    cast:["詹妮弗·安妮斯顿","柯特妮·考克斯","丽莎·库卓"], videoUrl:TEST_STREAMS[0] },
+  // ===== 新增国产影视（2026-09 增补；海报均来自 TMDB 并验证 200） =====
+  { id:2101, type:"tv", title:"新白娘子传奇", poster:"https://image.tmdb.org/t/p/w500/6Ni4IF97wjdZZwWbbDv6ED5tSQD.jpg", year:1992, rating:9.1, genres:["爱情","奇幻","古装"],    overview:"白蛇白素贞为报恩下山，与许仙结为夫妻，法海横加干涉，人妖之恋历经悲欢离合。",
+    cast:["赵雅芝","叶童","陈美琪"], videoUrl:TEST_STREAMS[0] },
+  { id:2102, type:"tv", title:"琅琊榜", poster:"https://image.tmdb.org/t/p/w500/pzDC9rdyJhGdgVGoYuAj8LTHBtJ.jpg", year:2015, rating:9.4, genres:["古装","权谋"],    overview:"麒麟才子梅长苏背负血海深仇重返金陵，以病弱之躯搅动朝局，为七万赤焰军沉冤昭雪。",
+    cast:["胡歌","刘涛","王凯"], videoUrl:TEST_STREAMS[1] },
+  { id:2103, type:"tv", title:"甄嬛传", poster:"https://image.tmdb.org/t/p/w500/iOMoMkDAAS2lJ1p5yCnKhrToWqc.jpg", year:2011, rating:9.4, genres:["古装","宫斗"],    overview:"少女甄嬛入宫后历经权谋倾轧，从天真烂漫到步步为营，最终成为执掌后宫的皇太后。",
+    cast:["孙俪","陈建斌","蔡少芬"], videoUrl:TEST_STREAMS[2] },
+  { id:2104, type:"tv", title:"西游记", poster:"https://image.tmdb.org/t/p/w500/4qenq7lp97owdCSg9i10sctC54M.jpg", year:1986, rating:9.7, genres:["古装","神话"],    overview:"唐僧师徒四人西行取经，历经九九八十一难，降妖除魔，终成正果的经典神话剧。",
+    cast:["六小龄童","马德华","迟重瑞"], videoUrl:TEST_STREAMS[3] },
+  { id:2105, type:"movie", title:"战狼2", poster:"https://image.tmdb.org/t/p/w500/1HGiHGbVNmrc246zbdrVxvs1p9G.jpg", year:2017, rating:7.1, genres:["动作","战争"],    overview:"退役特种兵冷锋卷入非洲国家叛乱，孤身带领同胞与难民穿越战火撤离，扬我国威。",
+    cast:["吴京","弗兰克·格里罗","吴刚"], videoUrl:TEST_STREAMS[4] },
+  { id:2106, type:"tv", title:"白夜追凶", poster:"https://image.tmdb.org/t/p/w500/cMUymzvJL0MeXR7OuuBmR0KGaxZ.jpg", year:2017, rating:9.0, genres:["悬疑","犯罪"],    overview:"孪生兄弟关宏峰关宏宇共用一个身份昼夜交替查案，在追查灭门惨案真相中步步惊心。",
+    cast:["潘粤明","王泷正","梁缘"], videoUrl:TEST_STREAMS[0] },
+  { id:2107, type:"tv", title:"庆余年", poster:"https://image.tmdb.org/t/p/w500/wHJvPo9CLpXwX1ncDg6uD0QJIZo.jpg", year:2019, rating:8.0, genres:["古装","权谋"],    overview:"身世神秘的少年范闲自澹州来到京都，卷入庆国朝堂与江湖的棋局，笑对风云。",
+    cast:["张若昀","李沁","陈道明"], videoUrl:TEST_STREAMS[1] },
+  { id:2108, type:"tv", title:"武林外传", poster:"https://image.tmdb.org/t/p/w500/d2RpcJazbDxLVPVTK41pv11WrEy.jpg", year:2006, rating:9.5, genres:["喜剧","古装"],    overview:"同福客栈掌柜佟湘玉与一群江湖儿女的爆笑日常，嬉笑怒骂间尽显人情冷暖。",
+    cast:["闫妮","沙溢","姚晨"], videoUrl:TEST_STREAMS[2] },
+  { id:2109, type:"tv", title:"亮剑", poster:"https://image.tmdb.org/t/p/w500/kJLn4BFfii9UlXXsFsbZ0uPXcOG.jpg", year:2005, rating:9.5, genres:["战争","历史"],    overview:"独立团团长李云龙以'亮剑'精神率部抗日，展现中国军人狭路相逢勇者胜的血性。",
+    cast:["李幼斌","何政军","张光北"], videoUrl:TEST_STREAMS[3] },
+  { id:2110, type:"tv", title:"人民的名义", poster:"https://image.tmdb.org/t/p/w500/v0kZJmHpQTms264js0YHYMLV7Oy.jpg", year:2017, rating:8.3, genres:["剧情","反腐"],    overview:"反贪局长侯亮平调查贪腐大案，与各路势力周旋博弈，揭开官场深层黑幕。",
+    cast:["陆毅","吴刚","许亚军"], videoUrl:TEST_STREAMS[4] },
+  { id:2111, type:"tv", title:"都挺好", poster:"https://image.tmdb.org/t/p/w500/3I2yvziANqEoiNLQGnlO38Gofbj.jpg", year:2019, rating:7.9, genres:["家庭","剧情"],    overview:"苏家三兄妹在母亲离世后被迫面对旧日矛盾，重男轻女的创伤与亲情羁绊交织。",
+    cast:["姚晨","倪大红","郭京飞"], videoUrl:TEST_STREAMS[5] },
+  { id:2112, type:"tv", title:"大明王朝1566", poster:"https://image.tmdb.org/t/p/w500/kv9Xn9BHSsnW5iTpWJb2t2LFzKm.jpg", year:2007, rating:9.7, genres:["古装","历史"],    overview:"嘉靖年间朝廷财政困局与权臣博弈，海瑞抬棺死谏，道尽封建王朝的兴衰宿命。",
+    cast:["陈宝国","黄志忠","倪大红"], videoUrl:TEST_STREAMS[6] }
 ];
 
 /* ---------- 3. 状态管理 ---------- */
@@ -768,7 +814,11 @@ function openPlayer(it, url){
     hls.attachMedia(video);
     hls.on(Hls.Events.MANIFEST_PARSED, function(){ video.play(); });
     hls.on(Hls.Events.ERROR, function(e, data){
-      if(data.fatal){ document.getElementById("playerQuality").textContent = "播放出错，请检查地址"; }
+      if(data.fatal){
+        var tip = document.getElementById("playerQuality");
+        tip.textContent = "播放出错：源不可达或跨域受限。可点右上角「源」更换其他地址重试";
+        document.getElementById("playerPlayPause").textContent = "重试";
+      }
     });
     document.getElementById("playerQuality").textContent = "清晰度：自动（HLS 切片流）";
   } else if(video.canPlayType("application/vnd.apple.mpegurl") && isHls){
@@ -810,6 +860,12 @@ function bindPlayerEvents(video){
   video.addEventListener("pause", function(){ ppBtn.textContent = "播放"; });
   seek.addEventListener("input", function(){ if(video.duration) video.currentTime = seek.value/1000 * video.duration; });
   ppBtn.onclick = function(){ video.paused ? video.play() : video.pause(); };
+  // 原生 video（MP4 直链）加载失败提示
+  video.addEventListener("error", function(){
+    if(!hls && video.getAttribute("src")){
+      document.getElementById("playerQuality").textContent = "播放出错：地址无法访问。可点右上角「源」更换其他地址重试";
+    }
+  });
   // 移动设备隐藏自带控件之外：点击画面显隐控制条
   document.getElementById("playerWrap").onclick = function(e){
     if(e.target === video){ document.getElementById("playerControls").classList.toggle("hidden"); }
