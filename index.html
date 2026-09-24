@@ -159,7 +159,8 @@ input{ font-family:inherit; }
 #detailOverlay.open{ display:block; }
 #detailBox{ width:100%; min-height:100%; background:var(--bg); position:relative; }
 .detail-backdrop{ height:min(50vh,440px); background-size:cover; background-position:center top; position:relative; display:flex; align-items:flex-end; }
-.detail-backdrop::after{ content:""; position:absolute; inset:0; background:linear-gradient(180deg, rgba(20,20,20,.15), rgba(20,20,20,.95) 85%); }
+.detail-backdrop .backdrop-img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:0; }
+.detail-backdrop::after{ content:""; position:absolute; inset:0; z-index:1; background:linear-gradient(180deg, rgba(20,20,20,.15), rgba(20,20,20,.95) 85%); }
 .detail-backdrop .back-btn{
   position:absolute; top:20px; left:20px; z-index:3; width:42px; height:42px; border-radius:50%;
   background:rgba(0,0,0,.5); font-size:20px; color:#fff; display:flex; align-items:center; justify-content:center;
@@ -442,130 +443,89 @@ function gradientFor(t){ const p=PALETTE[hashStr(t)%PALETTE.length]; return "lin
 
 const DEMO_DATA = [
   // ===== 电影（按年份从新到旧） =====
-  { id:1026, type:"movie", title:"奥本海默", year:2023, rating:8.9, genres:["剧情","历史","传记"],
-    overview:"'原子弹之父'奥本海默主导曼哈顿计划，见证人类掌握毁灭力量后陷入道德与政治的挣扎。",
+  { id:1026, type:"movie", title:"奥本海默", poster:"https://image.tmdb.org/t/p/w500/a6v21Mgz2w6OQL7ezkQxGbGA92W.jpg", year:2023, rating:8.9, genres:["剧情","历史","传记"],    overview:"'原子弹之父'奥本海默主导曼哈顿计划，见证人类掌握毁灭力量后陷入道德与政治的挣扎。",
     cast:["基里安·墨菲","艾米莉·布朗特","马特·达蒙"], videoUrl:TEST_STREAMS[0] },
-  { id:1012, type:"movie", title:"满江红", year:2023, rating:7.0, genres:["悬疑","喜剧","古装"],
-    overview:"南宋绍兴年间，宰相秦桧率兵与金国会谈，密信失窃，小兵张大与亲兵营副统领孙均被卷入谜局。",
+  { id:1012, type:"movie", title:"满江红", poster:"https://image.tmdb.org/t/p/w500/eqcH2KZZMJUvpYM1SWhch2XpSyp.jpg", year:2023, rating:7.0, genres:["悬疑","喜剧","古装"],    overview:"南宋绍兴年间，宰相秦桧率兵与金国会谈，密信失窃，小兵张大与亲兵营副统领孙均被卷入谜局。",
     cast:["沈腾","易烊千玺","张译"], videoUrl:TEST_STREAMS[1] },
-  { id:1010, type:"movie", title:"流浪地球2", year:2023, rating:8.3, genres:["科幻","冒险","灾难"],
-    overview:"太阳危机迫近，人类决定建造万座行星发动机，数字生命与移山计划之争白热化，人类命运悬于一线。",
+  { id:1010, type:"movie", title:"流浪地球2", poster:"https://image.tmdb.org/t/p/w500/cAS2e9hUwu6Ydsx7byXj16H00Ai.jpg", year:2023, rating:8.3, genres:["科幻","冒险","灾难"],    overview:"太阳危机迫近，人类决定建造万座行星发动机，数字生命与移山计划之争白热化，人类命运悬于一线。",
     cast:["吴京","刘德华","李雪健"], videoUrl:TEST_STREAMS[2] },
-  { id:1013, type:"movie", title:"长津湖", year:2021, rating:7.4, genres:["战争","历史","剧情"],
-    overview:"抗美援朝战争中，志愿军第七穿插连在极寒严酷的长津湖战场与美军王牌部队展开殊死对决。",
+  { id:1013, type:"movie", title:"长津湖", poster:"https://image.tmdb.org/t/p/w500/b3BM9liGHm4nvzsDO3frDtiEC6P.jpg", year:2021, rating:7.4, genres:["战争","历史","剧情"],    overview:"抗美援朝战争中，志愿军第七穿插连在极寒严酷的长津湖战场与美军王牌部队展开殊死对决。",
     cast:["吴京","易烊千玺","段奕宏"], videoUrl:TEST_STREAMS[3] },
-  { id:1025, type:"movie", title:"沙丘", year:2021, rating:8.3, genres:["科幻","冒险","剧情"],
-    overview:"厄拉科斯星球出产宇宙最珍贵的香料，少年保罗随家族接管沙丘，却卷入阴谋与复仇的命运漩涡。",
+  { id:1025, type:"movie", title:"沙丘", poster:"https://image.tmdb.org/t/p/w500/6hsJknqlPceFxExOe87z5VGgNG9.jpg", year:2021, rating:8.3, genres:["科幻","冒险","剧情"],    overview:"厄拉科斯星球出产宇宙最珍贵的香料，少年保罗随家族接管沙丘，却卷入阴谋与复仇的命运漩涡。",
     cast:["提莫西·查拉梅","丽贝卡·弗格森","奥斯卡·伊萨克"], videoUrl:TEST_STREAMS[4] },
-  { id:1001, type:"movie", title:"星际穿越", year:2014, rating:8.7, genres:["科幻","冒险","剧情"],
-    overview:"近未来的地球黄沙遍野，前 NASA 宇航员库珀与儿女一同生活。在一次沙尘暴后，他发现了引力异常现象，并受命踏上穿越虫洞、寻找人类新家园的星际之旅。",
+  { id:1001, type:"movie", title:"星际穿越", poster:"https://image.tmdb.org/t/p/w500/spQm5r317XPNHK1941ChWmqzkZs.jpg", year:2014, rating:8.7, genres:["科幻","冒险","剧情"],    overview:"近未来的地球黄沙遍野，前 NASA 宇航员库珀与儿女一同生活。在一次沙尘暴后，他发现了引力异常现象，并受命踏上穿越虫洞、寻找人类新家园的星际之旅。",
     cast:["马修·麦康纳","安妮·海瑟薇","杰西卡·查斯坦"], videoUrl:TEST_STREAMS[0] },
-  { id:1002, type:"movie", title:"盗梦空间", year:2010, rating:8.8, genres:["科幻","动作","悬疑"],
-    overview:"柯布与团队进入他人梦境窃取机密，而这次他接下一项不可能的任务：植入想法。多重梦境层层嵌套，现实与梦境逐渐模糊。",
+  { id:1002, type:"movie", title:"盗梦空间", poster:"https://image.tmdb.org/t/p/w500/89W962aAnPS3N3BdKgy2BvUhnCh.jpg", year:2010, rating:8.8, genres:["科幻","动作","悬疑"],    overview:"柯布与团队进入他人梦境窃取机密，而这次他接下一项不可能的任务：植入想法。多重梦境层层嵌套，现实与梦境逐渐模糊。",
     cast:["莱昂纳多·迪卡普里奥","约瑟夫·高登-莱维特","艾伦·佩吉"], videoUrl:TEST_STREAMS[1] },
-  { id:1014, type:"movie", title:"让子弹飞", year:2010, rating:9.0, genres:["剧情","喜剧","动作"],
-    overview:"北洋年间，悍匪张牧之摇身一变化名清官马邦德上任鹅城，与地方恶霸黄四郎斗智斗勇。",
+  { id:1014, type:"movie", title:"让子弹飞", poster:"https://image.tmdb.org/t/p/w500/p5KiZq5MtGExUhmgPbpwiGFzALt.jpg", year:2010, rating:9.0, genres:["剧情","喜剧","动作"],    overview:"北洋年间，悍匪张牧之摇身一变化名清官马邦德上任鹅城，与地方恶霸黄四郎斗智斗勇。",
     cast:["姜文","葛优","周润发"], videoUrl:TEST_STREAMS[2] },
-  { id:1006, type:"movie", title:"阿凡达", year:2009, rating:8.0, genres:["科幻","动作","冒险"],
-    overview:"残疾军人杰克通过阿凡达化身进入潘多拉星球，在纳美人部落中逐渐改变立场，最终为守护家园而战。",
+  { id:1006, type:"movie", title:"阿凡达", poster:"https://image.tmdb.org/t/p/w500/yTapYDvTQgxKUdilCYXRrGfpofj.jpg", year:2009, rating:8.0, genres:["科幻","动作","冒险"],    overview:"残疾军人杰克通过阿凡达化身进入潘多拉星球，在纳美人部落中逐渐改变立场，最终为守护家园而战。",
     cast:["萨姆·沃辛顿","佐伊·索尔达娜","西格妮·韦弗"], videoUrl:TEST_STREAMS[3] },
-  { id:1005, type:"movie", title:"蝙蝠侠：黑暗骑士", year:2008, rating:9.0, genres:["动作","犯罪","剧情"],
-    overview:"小丑在哥谭市掀起混乱，蝙蝠侠必须在正义与代价之间做出选择，哈维·登特的堕落更让他心力交瘁。",
+  { id:1005, type:"movie", title:"蝙蝠侠：黑暗骑士", poster:"https://image.tmdb.org/t/p/w500/qYB7QqwT1NtTW9aCwtopGy80rmA.jpg", year:2008, rating:9.0, genres:["动作","犯罪","剧情"],    overview:"小丑在哥谭市掀起混乱，蝙蝠侠必须在正义与代价之间做出选择，哈维·登特的堕落更让他心力交瘁。",
     cast:["克里斯蒂安·贝尔","希斯·莱杰","艾伦·艾克哈特"], videoUrl:TEST_STREAMS[4] },
-  { id:1018, type:"movie", title:"功夫", year:2004, rating:8.8, genres:["喜剧","动作","犯罪"],
-    overview:"小混混星仔冒充斧头帮踏入'猪笼城寨'，却在高手对决中领悟功夫真谛，成为一代宗师。",
+  { id:1018, type:"movie", title:"功夫", poster:"https://image.tmdb.org/t/p/w500/wv91QM70K9KzF9usPOebYX3LKkp.jpg", year:2004, rating:8.8, genres:["喜剧","动作","犯罪"],    overview:"小混混星仔冒充斧头帮踏入'猪笼城寨'，却在高手对决中领悟功夫真谛，成为一代宗师。",
     cast:["周星驰","元秋","元华"], videoUrl:TEST_STREAMS[0] },
-  { id:1023, type:"movie", title:"指环王：王者无敌", year:2003, rating:9.3, genres:["奇幻","冒险","动作"],
-    overview:"魔戒远征队兵分多路，佛罗多与山姆深入魔多销毁魔戒，刚铎与索伦大军展开终局大战。",
+  { id:1023, type:"movie", title:"指环王：王者无敌", poster:"https://image.tmdb.org/t/p/w500/kKUgYEOVebuu21N0KnQiGpIStiN.jpg", year:2003, rating:9.3, genres:["奇幻","冒险","动作"],    overview:"魔戒远征队兵分多路，佛罗多与山姆深入魔多销毁魔戒，刚铎与索伦大军展开终局大战。",
     cast:["伊利亚·伍德","伊恩·麦克莱恩","维果·莫腾森"], videoUrl:TEST_STREAMS[1] },
-  { id:1019, type:"movie", title:"千与千寻", year:2001, rating:9.4, genres:["动画","奇幻","冒险"],
-    overview:"少女千寻误入神灵世界，父母变成猪，她必须为汤婆婆工作，找回自己的名字并拯救家人。",
+  { id:1019, type:"movie", title:"千与千寻", poster:"https://image.tmdb.org/t/p/w500/dnwMqbndJpOEhoVqjlMU9U7LFle.jpg", year:2001, rating:9.4, genres:["动画","奇幻","冒险"],    overview:"少女千寻误入神灵世界，父母变成猪，她必须为汤婆婆工作，找回自己的名字并拯救家人。",
     cast:["柊瑠美","入野自由","夏木真理"], videoUrl:TEST_STREAMS[2] },
-  { id:1022, type:"movie", title:"黑客帝国", year:1999, rating:9.0, genres:["科幻","动作"],
-    overview:"程序员尼奥发现现实世界是机器构建的矩阵，他成为'救世主'，带领人类反抗机器统治。",
+  { id:1022, type:"movie", title:"黑客帝国", poster:"https://image.tmdb.org/t/p/w500/eMurN09rDC2qeEv3npkUbcJfIXN.jpg", year:1999, rating:9.0, genres:["科幻","动作"],    overview:"程序员尼奥发现现实世界是机器构建的矩阵，他成为'救世主'，带领人类反抗机器统治。",
     cast:["基努·里维斯","劳伦斯·菲什伯恩","凯瑞-安·莫斯"], videoUrl:TEST_STREAMS[3] },
-  { id:1024, type:"movie", title:"搏击俱乐部", year:1999, rating:9.0, genres:["剧情","悬疑","惊悚"],
-    overview:"失眠的白领与肥皂商人泰勒创立地下搏击俱乐部，一场关于消费主义与自我毁灭的实验逐渐失控。",
+  { id:1024, type:"movie", title:"搏击俱乐部", poster:"https://image.tmdb.org/t/p/w500/qkrH7rjYKU4KOwwIl6wF6H3ISvm.jpg", year:1999, rating:9.0, genres:["剧情","悬疑","惊悚"],    overview:"失眠的白领与肥皂商人泰勒创立地下搏击俱乐部，一场关于消费主义与自我毁灭的实验逐渐失控。",
     cast:["爱德华·诺顿","布拉德·皮特","海伦娜·伯翰·卡特"], videoUrl:TEST_STREAMS[4] },
-  { id:1007, type:"movie", title:"泰坦尼克号", year:1997, rating:9.5, genres:["爱情","剧情","灾难"],
-    overview:"穷画家杰克与贵族少女露丝在泰坦尼克号上相遇相爱，巨轮撞上冰山沉没，一段跨越阶级的爱情在灾难中永恒。",
+  { id:1007, type:"movie", title:"泰坦尼克号", poster:"https://image.tmdb.org/t/p/w500/lFYUkUPcFXDZzSfkiCDsvHIJxj.jpg", year:1997, rating:9.5, genres:["爱情","剧情","灾难"],    overview:"穷画家杰克与贵族少女露丝在泰坦尼克号上相遇相爱，巨轮撞上冰山沉没，一段跨越阶级的爱情在灾难中永恒。",
     cast:["莱昂纳多·迪卡普里奥","凯特·温丝莱特","比利·赞恩"], videoUrl:TEST_STREAMS[0] },
-  { id:1017, type:"movie", title:"大话西游之大圣娶亲", year:1995, rating:9.2, genres:["喜剧","爱情","奇幻"],
-    overview:"至尊宝为救白晶晶使用月光宝盒回到五百年前，却与紫霞仙子展开一段刻骨铭心的爱恋。",
+  { id:1017, type:"movie", title:"大话西游之大圣娶亲", poster:"https://image.tmdb.org/t/p/w500/rWwrVRW7UEOWmEdAACe6IeQ0mk0.jpg", year:1995, rating:9.2, genres:["喜剧","爱情","奇幻"],    overview:"至尊宝为救白晶晶使用月光宝盒回到五百年前，却与紫霞仙子展开一段刻骨铭心的爱恋。",
     cast:["周星驰","朱茵","莫文蔚"], videoUrl:TEST_STREAMS[1] },
-  { id:1003, type:"movie", title:"肖申克的救赎", year:1994, rating:9.7, genres:["剧情","犯罪"],
-    overview:"银行家安迪蒙冤入狱，在肖申克监狱中凭借智慧与希望，用二十年时间凿出一条通往自由的道路。",
+  { id:1003, type:"movie", title:"肖申克的救赎", poster:"https://image.tmdb.org/t/p/w500/aAdnwqwkKX5PPcr8EdtaiA8AZVl.jpg", year:1994, rating:9.7, genres:["剧情","犯罪"],    overview:"银行家安迪蒙冤入狱，在肖申克监狱中凭借智慧与希望，用二十年时间凿出一条通往自由的道路。",
     cast:["蒂姆·罗宾斯","摩根·弗里曼","鲍勃·冈顿"], videoUrl:TEST_STREAMS[2] },
-  { id:1015, type:"movie", title:"霸王别姬", year:1993, rating:9.6, genres:["剧情","爱情","历史"],
-    overview:"程蝶衣与段小楼从小一起学戏，因《霸王别姬》成名，历经时代变迁，戏梦人生终成悲歌。",
+  { id:1015, type:"movie", title:"霸王别姬", poster:"https://image.tmdb.org/t/p/w500/vOEkLofQ8N1OdbGs5L87m7Plpw2.jpg", year:1993, rating:9.6, genres:["剧情","爱情","历史"],    overview:"程蝶衣与段小楼从小一起学戏，因《霸王别姬》成名，历经时代变迁，戏梦人生终成悲歌。",
     cast:["张国荣","张丰毅","巩俐"], videoUrl:TEST_STREAMS[3] },
-  { id:1016, type:"movie", title:"活着", year:1994, rating:9.3, genres:["剧情","家庭","历史"],
-    overview:"福贵嗜赌成性败光家产，历经内战、大跃进、文革等时代动荡，一家人相依为命顽强求生。",
+  { id:1016, type:"movie", title:"活着", poster:"https://image.tmdb.org/t/p/w500/lYxJxcRQAoEHtz94ZMJyODiwh8S.jpg", year:1994, rating:9.3, genres:["剧情","家庭","历史"],    overview:"福贵嗜赌成性败光家产，历经内战、大跃进、文革等时代动荡，一家人相依为命顽强求生。",
     cast:["葛优","巩俐","牛犇"], videoUrl:TEST_STREAMS[4] },
-  { id:1020, type:"movie", title:"阿甘正传", year:1994, rating:9.5, genres:["剧情","爱情"],
-    overview:"智商仅 75 的阿甘凭借单纯与坚持，走过橄榄球场、越战、捕虾船，成为美国梦的传奇。",
+  { id:1020, type:"movie", title:"阿甘正传", poster:"https://image.tmdb.org/t/p/w500/pplybKImR7LKzSVzRylK6Cl4dzm.jpg", year:1994, rating:9.5, genres:["剧情","爱情"],    overview:"智商仅 75 的阿甘凭借单纯与坚持，走过橄榄球场、越战、捕虾船，成为美国梦的传奇。",
     cast:["汤姆·汉克斯","罗宾·怀特","加里·西尼斯"], videoUrl:TEST_STREAMS[0] },
-  { id:1021, type:"movie", title:"低俗小说", year:1994, rating:8.9, genres:["剧情","犯罪"],
-    overview:"几个看似独立的故事在洛杉矶交织，暴力、幽默与宿命在非线性叙事中环环相扣。",
+  { id:1021, type:"movie", title:"低俗小说", poster:"https://image.tmdb.org/t/p/w500/WZW5PCtCbtyKfojdLlPCi89DNx.jpg", year:1994, rating:8.9, genres:["剧情","犯罪"],    overview:"几个看似独立的故事在洛杉矶交织，暴力、幽默与宿命在非线性叙事中环环相扣。",
     cast:["约翰·特拉沃尔塔","乌玛·瑟曼","塞缪尔·杰克逊"], videoUrl:TEST_STREAMS[1] },
-  { id:1004, type:"movie", title:"教父", year:1972, rating:9.3, genres:["剧情","犯罪"],
-    overview:"柯里昂家族首领维托退休后，小儿子迈克尔从不愿卷入家族事务到被迫接过权力，成为新一代教父。",
+  { id:1004, type:"movie", title:"教父", poster:"https://image.tmdb.org/t/p/w500/y03tzUKvkRCYwJ5NWys4W4bnS9m.jpg", year:1972, rating:9.3, genres:["剧情","犯罪"],    overview:"柯里昂家族首领维托退休后，小儿子迈克尔从不愿卷入家族事务到被迫接过权力，成为新一代教父。",
     cast:["马龙·白兰度","阿尔·帕西诺","詹姆斯·肯恩"], videoUrl:TEST_STREAMS[2] },
-  { id:1008, type:"movie", title:"复仇者联盟4：终局之战", year:2019, rating:8.5, genres:["科幻","动作","冒险"],
-    overview:"灭霸打响响指后世界支离破碎，幸存的复仇者们穿越时间线收集无限宝石，发起最终一战。",
+  { id:1008, type:"movie", title:"复仇者联盟4：终局之战", poster:"https://image.tmdb.org/t/p/w500/wXyZYO6BKDh8Evf80DF80VzKcz3.jpg", year:2019, rating:8.5, genres:["科幻","动作","冒险"],    overview:"灭霸打响响指后世界支离破碎，幸存的复仇者们穿越时间线收集无限宝石，发起最终一战。",
     cast:["小罗伯特·唐尼","克里斯·埃文斯","马克·鲁法洛"], videoUrl:TEST_STREAMS[3] },
-  { id:1009, type:"movie", title:"流浪地球", year:2019, rating:7.9, genres:["科幻","冒险","灾难"],
-    overview:"太阳即将毁灭，人类启动流浪地球计划，推动地球逃离太阳系。危机时刻，各国救援队为点燃发动机而拼尽全力。",
+  { id:1009, type:"movie", title:"流浪地球", poster:"https://image.tmdb.org/t/p/w500/tXuQCgx69DxVgeTsU0TkruR3i9O.jpg", year:2019, rating:7.9, genres:["科幻","冒险","灾难"],    overview:"太阳即将毁灭，人类启动流浪地球计划，推动地球逃离太阳系。危机时刻，各国救援队为点燃发动机而拼尽全力。",
     cast:["吴京","屈楚萧","李光洁"], videoUrl:TEST_STREAMS[4] },
-  { id:1011, type:"movie", title:"哪吒之魔童降世", year:2019, rating:8.4, genres:["动画","奇幻","喜剧"],
-    overview:"哪吒本是灵珠转世却阴差阳错成为魔丸，生而为魔的他逆天改命，喊出'我命由我不由天'。",
+  { id:1011, type:"movie", title:"哪吒之魔童降世", poster:"https://image.tmdb.org/t/p/w500/zb8xejiaNR0snSJgDepwFQUIi2e.jpg", year:2019, rating:8.4, genres:["动画","奇幻","喜剧"],    overview:"哪吒本是灵珠转世却阴差阳错成为魔丸，生而为魔的他逆天改命，喊出'我命由我不由天'。",
     cast:["吕艳婷","囧森瑟夫","瀚墨"], videoUrl:TEST_STREAMS[0] },
 
   // ===== 电视剧（按首播年份从新到旧） =====
-  { id:2013, type:"tv", title:"漫长的季节", year:2023, rating:9.4, genres:["悬疑","剧情","犯罪"],
-    overview:"出租车司机王响联手妹夫龚彪、刑警马队调查碎尸案，跨越十八年时间，揭开被掩埋的真相。",
+  { id:2013, type:"tv", title:"漫长的季节", poster:"https://image.tmdb.org/t/p/w500/tJLiKDYdfMskFkJXV1HnaQAdpGf.jpg", year:2023, rating:9.4, genres:["悬疑","剧情","犯罪"],    overview:"出租车司机王响联手妹夫龚彪、刑警马队调查碎尸案，跨越十八年时间，揭开被掩埋的真相。",
     cast:["范伟","秦昊","陈明昊"], videoUrl:TEST_STREAMS[1] },
-  { id:2011, type:"tv", title:"三体", year:2023, rating:8.7, genres:["科幻","悬疑"],
-    overview:"纳米科学家汪淼被卷入'科学边界'组织的谜团，地球文明与三体文明的第一次接触由此展开。",
+  { id:2011, type:"tv", title:"三体", poster:"https://image.tmdb.org/t/p/w500/q2sNliRi4j0ncXKUO1x0MldR20A.jpg", year:2023, rating:8.7, genres:["科幻","悬疑"],    overview:"纳米科学家汪淼被卷入'科学边界'组织的谜团，地球文明与三体文明的第一次接触由此展开。",
     cast:["张鲁一","于和伟","陈瑾"], videoUrl:TEST_STREAMS[2] },
-  { id:2012, type:"tv", title:"狂飙", year:2023, rating:8.5, genres:["剧情","犯罪"],
-    overview:"刑警安欣与鱼贩高启强二十年正邪较量，见证一个黑恶势力在时代夹缝中崛起与覆灭。",
+  { id:2012, type:"tv", title:"狂飙", poster:"https://image.tmdb.org/t/p/w500/xmBmR46Nks73VlTrCsH9i6KCWSH.jpg", year:2023, rating:8.5, genres:["剧情","犯罪"],    overview:"刑警安欣与鱼贩高启强二十年正邪较量，见证一个黑恶势力在时代夹缝中崛起与覆灭。",
     cast:["张译","张颂文","李一桐"], videoUrl:TEST_STREAMS[3] },
-  { id:2014, type:"tv", title:"觉醒年代", year:2021, rating:9.3, genres:["历史","剧情"],
-    overview:"从新文化运动到中国共产党建立，陈独秀、李大钊、胡适等先驱探索救国道路的热血年代。",
+  { id:2014, type:"tv", title:"觉醒年代", poster:"https://image.tmdb.org/t/p/w500/irnWVsvW2RnqyhaIF18gK1fNeRt.jpg", year:2021, rating:9.3, genres:["历史","剧情"],    overview:"从新文化运动到中国共产党建立，陈独秀、李大钊、胡适等先驱探索救国道路的热血年代。",
     cast:["于和伟","张桐","马少骅"], videoUrl:TEST_STREAMS[4] },
-  { id:2015, type:"tv", title:"隐秘的角落", year:2020, rating:8.8, genres:["悬疑","剧情","犯罪"],
-    overview:"三个孩子在景区无意拍下一场谋杀，冒险由此展开，每个人心底的隐秘角落被逐一揭开。",
+  { id:2015, type:"tv", title:"隐秘的角落", poster:"https://image.tmdb.org/t/p/w500/zlaml7IKAIPa3NJE9LhRveELD0v.jpg", year:2020, rating:8.8, genres:["悬疑","剧情","犯罪"],    overview:"三个孩子在景区无意拍下一场谋杀，冒险由此展开，每个人心底的隐秘角落被逐一揭开。",
     cast:["秦昊","王景春","荣梓杉"], videoUrl:TEST_STREAMS[0] },
-  { id:2008, type:"tv", title:"最后生还者", year:2023, rating:8.7, genres:["科幻","剧情","冒险"],
-    overview:"真菌感染摧毁现代文明，走私客乔尔护送少女艾莉穿越美国，两人在末日中相互扶持。",
+  { id:2008, type:"tv", title:"最后生还者", poster:"https://image.tmdb.org/t/p/w500/ydyTjqxZsPlcFSTBNY2INYrmEvk.jpg", year:2023, rating:8.7, genres:["科幻","剧情","冒险"],    overview:"真菌感染摧毁现代文明，走私客乔尔护送少女艾莉穿越美国，两人在末日中相互扶持。",
     cast:["佩德罗·帕斯卡","贝拉·拉姆齐","安娜·托芙"], videoUrl:TEST_STREAMS[1] },
-  { id:2009, type:"tv", title:"曼达洛人", year:2019, rating:8.6, genres:["科幻","动作","冒险"],
-    overview:"银河帝国覆灭后，独行赏金猎人曼达洛人受托护送幼年原力敏感者'尤达宝宝'，一路躲避追捕。",
+  { id:2009, type:"tv", title:"曼达洛人", poster:"https://image.tmdb.org/t/p/w500/4NJzGBiXpq2xSiWEyR7URharYvU.jpg", year:2019, rating:8.6, genres:["科幻","动作","冒险"],    overview:"银河帝国覆灭后，独行赏金猎人曼达洛人受托护送幼年原力敏感者'尤达宝宝'，一路躲避追捕。",
     cast:["佩德罗·帕斯卡","吉安卡罗·埃斯波西托","卡尔·韦瑟斯"], videoUrl:TEST_STREAMS[2] },
-  { id:2004, type:"tv", title:"西部世界", year:2016, rating:8.9, genres:["科幻","悬疑","剧情"],
-    overview:"高科技主题乐园中的仿生人开始觉醒自我意识，人类与造物之间的界限被彻底颠覆。",
+  { id:2004, type:"tv", title:"西部世界", poster:"https://image.tmdb.org/t/p/w500/kgCNunp2VbUv6o5As5viHvkAsWv.jpg", year:2016, rating:8.9, genres:["科幻","悬疑","剧情"],    overview:"高科技主题乐园中的仿生人开始觉醒自我意识，人类与造物之间的界限被彻底颠覆。",
     cast:["埃文·蕾切尔·伍德","安东尼·霍普金斯","艾德·哈里斯"], videoUrl:TEST_STREAMS[3] },
-  { id:2005, type:"tv", title:"怪奇物语", year:2016, rating:8.8, genres:["科幻","悬疑","惊悚"],
-    overview:"印第安纳州小镇男孩神秘失踪，小伙伴们发现政府秘密实验与异次元'颠倒世界'的存在。",
+  { id:2005, type:"tv", title:"怪奇物语", poster:"https://image.tmdb.org/t/p/w500/AgXfcxQzD2lHTW8r0JmyEUHW3Nh.jpg", year:2016, rating:8.8, genres:["科幻","悬疑","惊悚"],    overview:"印第安纳州小镇男孩神秘失踪，小伙伴们发现政府秘密实验与异次元'颠倒世界'的存在。",
     cast:["米莉·波比·布朗","芬恩·伍法德","薇诺娜·瑞德"], videoUrl:TEST_STREAMS[4] },
-  { id:2001, type:"tv", title:"权力的游戏", year:2011, rating:9.4, genres:["奇幻","剧情","战争"],
-    overview:"维斯特洛大陆七大王国的权力纷争，龙母、史塔克、兰尼斯特等家族为铁王座展开残酷角逐。",
+  { id:2001, type:"tv", title:"权力的游戏", poster:"https://image.tmdb.org/t/p/w500/qcp3v0Bgk8Kc6CXvSL0PAF3zyYp.jpg", year:2011, rating:9.4, genres:["奇幻","剧情","战争"],    overview:"维斯特洛大陆七大王国的权力纷争，龙母、史塔克、兰尼斯特等家族为铁王座展开残酷角逐。",
     cast:["彼特·丁拉基","艾米莉亚·克拉克","基特·哈灵顿"], videoUrl:TEST_STREAMS[0] },
-  { id:2010, type:"tv", title:"神探夏洛克", year:2010, rating:9.5, genres:["悬疑","犯罪","剧情"],
-    overview:"福尔摩斯搬到现代伦敦，与华生组成搭档，用天才推理破解一桩桩离奇案件。",
+  { id:2010, type:"tv", title:"神探夏洛克", poster:"https://image.tmdb.org/t/p/w500/qb77352yrXWMnTx5zSPAoqRHHha.jpg", year:2010, rating:9.5, genres:["悬疑","犯罪","剧情"],    overview:"福尔摩斯搬到现代伦敦，与华生组成搭档，用天才推理破解一桩桩离奇案件。",
     cast:["本尼迪克特·康伯巴奇","马丁·弗瑞曼","安德鲁·斯科特"], videoUrl:TEST_STREAMS[1] },
-  { id:2006, type:"tv", title:"黑镜", year:2011, rating:8.8, genres:["科幻","惊悚","剧情"],
-    overview:"每集一个独立故事，聚焦现代科技对人性的侵蚀与讽刺，黑色寓言发人深省。",
+  { id:2006, type:"tv", title:"黑镜", poster:"https://image.tmdb.org/t/p/w500/cF9V4PXhgRztl7g7nOJqFHvgeHT.jpg", year:2011, rating:8.8, genres:["科幻","惊悚","剧情"],    overview:"每集一个独立故事，聚焦现代科技对人性的侵蚀与讽刺，黑色寓言发人深省。",
     cast:["丹尼尔·卡卢亚","海莉·阿特维尔","乔恩·哈姆"], videoUrl:TEST_STREAMS[2] },
-  { id:2002, type:"tv", title:"绝命毒师", year:2008, rating:9.6, genres:["剧情","犯罪","惊悚"],
-    overview:"化学老师沃尔特被诊断出癌症后，与昔日学生联手制毒，一步步堕入犯罪深渊。",
+  { id:2002, type:"tv", title:"绝命毒师", poster:"https://image.tmdb.org/t/p/w500/rqliuvX7NdknSHu5qaSDfESplQi.jpg", year:2008, rating:9.6, genres:["剧情","犯罪","惊悚"],    overview:"化学老师沃尔特被诊断出癌症后，与昔日学生联手制毒，一步步堕入犯罪深渊。",
     cast:["布莱恩·科兰斯顿","亚伦·保尔","安娜·冈"], videoUrl:TEST_STREAMS[3] },
-  { id:2007, type:"tv", title:"王冠", year:2016, rating:8.7, genres:["剧情","历史"],
-    overview:"伊丽莎白二世登基后的王室风云，个人情感与公共职责在历史洪流中反复碰撞。",
+  { id:2007, type:"tv", title:"王冠", poster:"https://image.tmdb.org/t/p/w500/yndvBGfD2S09kv89uSCHQyDyYWy.jpg", year:2016, rating:8.7, genres:["剧情","历史"],    overview:"伊丽莎白二世登基后的王室风云，个人情感与公共职责在历史洪流中反复碰撞。",
     cast:["克莱尔·芙伊","马特·史密斯","奥利维娅·科尔曼"], videoUrl:TEST_STREAMS[4] },
-  { id:2003, type:"tv", title:"老友记", year:1994, rating:9.7, genres:["喜剧","爱情"],
-    overview:"六位好友在纽约曼哈顿的日常生活，关于友情、爱情与成长的笑泪交织。",
+  { id:2003, type:"tv", title:"老友记", poster:"https://image.tmdb.org/t/p/w500/iDdFfZB5sexPhDOvacEhWWvgxel.jpg", year:1994, rating:9.7, genres:["喜剧","爱情"],    overview:"六位好友在纽约曼哈顿的日常生活，关于友情、爱情与成长的笑泪交织。",
     cast:["詹妮弗·安妮斯顿","柯特妮·考克斯","丽莎·库卓"], videoUrl:TEST_STREAMS[0] }
 ];
 
@@ -653,12 +613,13 @@ function stars(r){ return r ? "★ " + Number(r).toFixed(1) : ""; }
 function cardHTML(it, opts){
   opts = opts || {};
   const img = posterOf(it);
-  const posterBg = img ? "background-image:url('" + img + "')" : "background:" + gradientFor(it.title);
-  const grad = img ? "" : '<div class="grad-ph">' + it.title.charAt(0) + '</div>';
+  const posterBg = img ? "background:" + gradientFor(it.title) : "background:" + gradientFor(it.title);
+  const grad = '<div class="grad-ph">' + it.title.charAt(0) + '</div>';
+  const imgTag = img ? '<img class="poster-img" src="' + img + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">' : '';
   const favOn = isFav(it) ? "on" : "";
   const typeBadge = opts.showType ? '<span class="badge-type ' + (it.type==="tv"?"badge-tv":"") + '">' + (it.type==="tv"?"剧":"影") + '</span>' : "";
   return '<div class="card" data-id="' + it.id + '" data-type="' + it.type + '" tabindex="0">'
-    + '<div class="poster" style="' + posterBg + '">' + grad
+    + '<div class="poster" style="' + posterBg + '">' + imgTag + grad
     + '<button class="fav ' + favOn + '" data-fav="' + favKey(it) + '" aria-label="收藏">' + (favOn?"♥":"♡") + '</button>'
     + '</div>'
     + '<div class="card-info"><div class="card-title">' + it.title + '</div>'
@@ -686,7 +647,7 @@ function sortByYearDesc(a,b){ return (b.year||0) - (a.year||0) || (b.rating||0)-
 // Hero 渲染
 function heroHTML(it){
   const bg = backdropOf(it);
-  const bgStyle = bg ? "background-image:url('" + bg + "');" : "background:" + gradientFor(it.title) + ";";
+  const bgStyle = bg ? "background-image:url('" + bg + "');background-color:#141414;" : "background:" + gradientFor(it.title) + ";";
   const meta = '<span>' + (it.type==="movie"?"电影":"电视剧") + '</span>'
     + (it.year ? '<span>' + it.year + '</span>' : "")
     + (it.rating ? '<span class="star">' + stars(it.rating) + '</span>' : "");
@@ -725,11 +686,13 @@ function findItem(type, id){
 function openDetail(it){
   detailItem = it;
   const bg = backdropOf(it);
-  const bgStyle = bg ? "background-image:url('" + bg + "');" : "background:" + gradientFor(it.title) + ";";
+  const bgStyle = bg ? "background:" + gradientFor(it.title) + ";" : "background:" + gradientFor(it.title) + ";";
+  const bgImg = bg ? '<img class="backdrop-img" src="' + bg + '" alt="" onerror="this.style.display=\'none\'">' : '';
   const castHtml = it.cast && it.cast.length ? '<div class="detail-cast"><b>演员：</b>' + it.cast.join(" / ") + '</div>' : "";
   const genresHtml = (it.genres && it.genres.length) ? '<div class="detail-genres">' + it.genres.map(g=>'<span class="chip">'+g+'</span>').join("") + '</div>' : "";
   document.getElementById("detailBox").innerHTML =
     '<div class="detail-backdrop" style="' + bgStyle + '">'
+    + bgImg
     + '<button class="back-btn" id="detailClose">←</button>'
     + '<div class="detail-head">'
     + '<h2 class="detail-title">' + it.title + '</h2>'
@@ -873,8 +836,8 @@ function showPage(name){
   document.querySelectorAll(".nav-item, #mobileNav button").forEach(b => {
     b.classList.toggle("active", b.getAttribute("data-nav") === name);
   });
-  if(name === "movies" && !tmdbMovies.length && !isDemo()) loadMoviesPage();
-  if(name === "tv" && !tmdbTv.length && !isDemo()) loadTvPage();
+  if(name === "movies" && (!tmdbMovies.length || isDemo())) loadMoviesPage();
+  if(name === "tv" && (!tmdbTv.length || isDemo())) loadTvPage();
   if(name === "favorites") renderFavorites();
   if(name === "cache") renderCacheList();   // 新增：我的缓存页
   window.scrollTo(0,0);
