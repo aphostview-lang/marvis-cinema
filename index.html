@@ -1,0 +1,1321 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Marvis Cinema - 自用影视</title>
+<!-- hls.js CDN：用于播放 m3u8 直播/切片流 -->
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
+<style>
+/* ============ 全局样式（奈飞风格深色 UI） ============ */
+*{ margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+:root{
+  --red:#E50914;
+  --bg:#141414;
+  --bg2:#1c1c1c;
+  --bg3:#242424;
+  --text:#fff;
+  --muted:#a3a3a3;
+  --star:#f5c518;
+}
+html,body{ background:var(--bg); color:var(--text); font-family:"PingFang SC","Microsoft YaHei",system-ui,-apple-system,sans-serif; font-size:16px; }
+body{ min-height:100vh; padding-bottom:60px; }
+a{ color:inherit; text-decoration:none; }
+img{ display:block; }
+button{ font-family:inherit; cursor:pointer; border:none; background:none; color:inherit; }
+input{ font-family:inherit; }
+::-webkit-scrollbar{ width:8px; height:8px; }
+::-webkit-scrollbar-thumb{ background:#333; border-radius:4px; }
+::-webkit-scrollbar-track{ background:transparent; }
+
+/* ============ 顶部导航 ============ */
+#topbar{
+  position:fixed; top:0; left:0; right:0; z-index:100;
+  display:flex; align-items:center; gap:20px;
+  padding:0 3vw; height:64px;
+  background:linear-gradient(180deg, rgba(0,0,0,.85) 0%, rgba(20,20,20,.6) 70%, transparent 100%);
+}
+#topbar.scrolled{ background:#141414; box-shadow:0 2px 12px rgba(0,0,0,.5); }
+.logo{ font-size:24px; font-weight:900; color:var(--red); letter-spacing:1px; white-space:nowrap; cursor:pointer; outline:none; }
+.logo span{ color:#fff; font-weight:600; }
+.nav{ display:flex; gap:4px; }
+.nav button{
+  padding:8px 14px; border-radius:6px; font-size:15px; color:#e5e5e5; white-space:nowrap; outline:none;
+}
+.nav button:hover{ color:#fff; }
+.nav button.active{ color:#fff; font-weight:700; }
+.nav button.focused{ outline:2px solid #fff; }
+#searchBox{
+  margin-left:auto; display:flex; align-items:center; gap:6px;
+  background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.15);
+  border-radius:6px; padding:0 12px; height:36px; width:230px; transition:width .3s, background .3s;
+}
+#searchBox:focus-within{ background:#fff; width:300px; }
+#searchBox:focus-within #searchInput{ color:#000; }
+#searchInput{ flex:1; background:none; border:none; outline:none; color:#fff; font-size:14px; }
+#searchInput::placeholder{ color:#a3a3a3; }
+#searchBox:focus-within #searchInput::placeholder{ color:#666; }
+#searchBtn{ color:#e5e5e5; font-size:16px; line-height:1; }
+#settingsBtn{ font-size:20px; color:#e5e5e5; line-height:1; padding:6px; outline:none; }
+#settingsBtn:hover{ color:#fff; transform:rotate(30deg); transition:transform .4s; }
+#hamburger{ display:none; font-size:24px; color:#fff; }
+#mobileNav{
+  display:none; position:fixed; top:64px; left:0; right:0; z-index:99;
+  background:rgba(20,20,20,.98); flex-direction:column; padding:8px 0; box-shadow:0 6px 20px rgba(0,0,0,.6);
+}
+#mobileNav.show{ display:flex; }
+#mobileNav button{ padding:14px 24px; font-size:16px; text-align:left; color:#e5e5e5; border-bottom:1px solid #222; }
+#mobileNav button.active{ color:var(--red); font-weight:700; }
+
+/* ============ 电视端提示条 ============ */
+#tvHint{
+  position:fixed; top:70px; left:50%; transform:translateX(-50%); z-index:90;
+  background:rgba(0,0,0,.75); border:1px solid rgba(255,255,255,.2); border-radius:8px;
+  padding:10px 18px; font-size:14px; color:#e5e5e5; display:flex; align-items:center; gap:12px; white-space:nowrap;
+}
+#tvHint .close{ color:#fff; font-size:16px; padding:2px 8px; border-radius:4px; }
+#tvHint .close:hover{ background:rgba(255,255,255,.15); }
+
+/* ============ 页面容器 ============ */
+.page{ display:none; padding-top:64px; }
+.page.active{ display:block; }
+.container{ padding:24px 3vw; }
+.section-title{ font-size:22px; font-weight:700; margin:26px 0 14px; }
+#searchPage .search-stat{ color:var(--muted); font-size:14px; margin-bottom:14px; }
+
+/* ============ Hero 大横幅 ============ */
+.hero{
+  position:relative; height:min(70vh, 600px); min-height:420px;
+  background-size:cover; background-position:center top;
+  display:flex; align-items:flex-end; overflow:hidden;
+}
+.hero::after{ content:""; position:absolute; inset:0; background:linear-gradient(180deg, rgba(20,20,20,.25) 0%, rgba(20,20,20,.1) 40%, rgba(20,20,20,.92) 88%, #141414 100%); }
+.hero-inner{ position:relative; z-index:2; padding:0 3vw 56px; max-width:1200px; }
+.hero-badge{ display:inline-block; background:var(--red); font-size:12px; font-weight:700; padding:4px 10px; border-radius:4px; margin-bottom:12px; }
+.hero-title{ font-size:clamp(30px,4.5vw,60px); font-weight:900; margin-bottom:10px; text-shadow:0 2px 16px rgba(0,0,0,.6); }
+.hero-meta{ color:#e5e5e5; font-size:15px; margin-bottom:12px; display:flex; gap:14px; flex-wrap:wrap; align-items:center; }
+.hero-overview{ max-width:560px; color:#ccc; font-size:15px; line-height:1.6; margin-bottom:22px; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
+.hero-btns{ display:flex; gap:12px; flex-wrap:wrap; }
+.btn{
+  display:inline-flex; align-items:center; gap:8px; padding:10px 26px; border-radius:6px;
+  font-size:16px; font-weight:700; transition:transform .15s, background .2s; outline:none;
+}
+.btn:active{ transform:scale(.96); }
+.btn-play{ background:#fff; color:#000; }
+.btn-play:hover{ background:#e5e5e5; }
+.btn-info{ background:rgba(109,109,110,.55); color:#fff; }
+.btn-info:hover{ background:rgba(109,109,110,.75); }
+.btn-red{ background:var(--red); color:#fff; }
+.btn-red:hover{ background:#f6121d; }
+
+/* ============ 横向滚动内容行 ============ */
+.row{ margin:0 3vw; }
+.row-title{ font-size:20px; font-weight:700; margin:24px 0 12px; display:flex; align-items:center; gap:10px; }
+.row-title .count{ font-size:13px; color:var(--muted); font-weight:400; }
+.row-scroll{
+  display:flex; gap:10px; overflow-x:auto; scroll-behavior:smooth;
+  padding:8px 4px 16px; scroll-snap-type:x proximity;
+}
+.row-scroll::-webkit-scrollbar{ height:5px; }
+
+/* ============ 卡片 ============ */
+.card{
+  flex:0 0 auto; width:160px; position:relative; cursor:pointer;
+  border-radius:8px; overflow:hidden; background:var(--bg2);
+  transition:transform .25s, box-shadow .25s; scroll-snap-align:start;
+  outline:2px solid transparent; outline-offset:2px;
+}
+.card:hover{ transform:scale(1.08); z-index:5; box-shadow:0 10px 30px rgba(0,0,0,.7); }
+.card.focused{ transform:scale(1.08); z-index:5; outline:2px solid #fff; box-shadow:0 10px 30px rgba(0,0,0,.7); }
+.card .poster{ aspect-ratio:2/3; width:100%; background-size:cover; background-position:center; position:relative; display:flex; align-items:flex-end; }
+.card .grad-ph{ width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:38px; font-weight:900; color:rgba(255,255,255,.4); }
+.card .fav{
+  position:absolute; top:6px; right:6px; z-index:3; width:30px; height:30px;
+  border-radius:50%; background:rgba(0,0,0,.45); color:#fff; font-size:15px;
+  display:flex; align-items:center; justify-content:center; line-height:1;
+}
+.card .fav.on{ color:var(--red); }
+.card .card-info{ padding:8px 6px 10px; }
+.card .card-title{ font-size:14px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.card .card-sub{ font-size:12px; color:var(--muted); margin-top:3px; display:flex; align-items:center; gap:6px; }
+.star{ color:var(--star); font-size:12px; }
+.badge-type{ font-size:10px; padding:1px 6px; border-radius:3px; background:rgba(255,255,255,.14); }
+.badge-tv{ background:rgba(229,9,20,.7); }
+
+/* ============ 网格（分类页 / 搜索页 / 收藏页） ============ */
+.grid{ display:grid; gap:16px 12px; grid-template-columns:repeat(auto-fill, minmax(150px,1fr)); }
+@media (max-width:640px){ .grid{ grid-template-columns:repeat(2,1fr); gap:12px 10px; } }
+@media (min-width:1200px){ .grid{ grid-template-columns:repeat(auto-fill, minmax(180px,1fr)); } }
+.grid .card{ width:100%; }
+
+/* ============ 空状态 / 加载 ============ */
+.empty{ text-align:center; color:var(--muted); padding:80px 20px; font-size:15px; }
+.loading{ text-align:center; color:var(--muted); padding:80px 20px; }
+.spinner{ display:inline-block; width:36px; height:36px; border:3px solid #333; border-top-color:var(--red); border-radius:50%; animation:spin 1s linear infinite; }
+@keyframes spin{ to{ transform:rotate(360deg); } }
+
+/* ============ 详情弹层 ============ */
+#detailOverlay{ position:fixed; inset:0; z-index:200; display:none; background:rgba(0,0,0,.6); overflow-y:auto; }
+#detailOverlay.open{ display:block; }
+#detailBox{ width:100%; min-height:100%; background:var(--bg); position:relative; }
+.detail-backdrop{ height:min(50vh,440px); background-size:cover; background-position:center top; position:relative; display:flex; align-items:flex-end; }
+.detail-backdrop::after{ content:""; position:absolute; inset:0; background:linear-gradient(180deg, rgba(20,20,20,.15), rgba(20,20,20,.95) 85%); }
+.detail-backdrop .back-btn{
+  position:absolute; top:20px; left:20px; z-index:3; width:42px; height:42px; border-radius:50%;
+  background:rgba(0,0,0,.5); font-size:20px; color:#fff; display:flex; align-items:center; justify-content:center;
+}
+.detail-backdrop .back-btn:hover{ background:rgba(0,0,0,.75); }
+.detail-head{ position:relative; z-index:2; padding:0 3vw 24px; width:100%; }
+.detail-title{ font-size:clamp(26px,3.5vw,44px); font-weight:900; margin-bottom:10px; }
+.detail-meta{ display:flex; gap:14px; flex-wrap:wrap; color:#e5e5e5; font-size:14px; margin-bottom:12px; align-items:center; }
+.detail-meta .year{ border:1px solid rgba(255,255,255,.5); padding:1px 8px; border-radius:4px; }
+.detail-body{ padding:20px 3vw 40px; }
+.detail-genres{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+.chip{ background:var(--bg3); padding:4px 12px; border-radius:16px; font-size:13px; color:#e5e5e5; }
+.detail-overview{ color:#d2d2d2; font-size:15px; line-height:1.8; margin-bottom:16px; }
+.detail-cast{ color:#e5e5e5; font-size:14px; line-height:1.7; margin-bottom:20px; }
+.detail-cast b{ color:#fff; }
+.detail-actions{ display:flex; gap:12px; flex-wrap:wrap; margin-bottom:26px; }
+.source-box{ background:var(--bg2); border-radius:10px; padding:16px; margin-top:6px; }
+.source-box h4{ font-size:14px; margin-bottom:10px; color:#e5e5e5; }
+.source-box input{ width:100%; padding:10px 12px; border-radius:6px; border:1px solid #444; background:#111; color:#fff; font-size:14px; outline:none; }
+.source-box input:focus{ border-color:var(--red); }
+.source-box .row-btns{ display:flex; gap:10px; margin-top:10px; flex-wrap:wrap; }
+
+/* ============ 播放器 ============ */
+#playerOverlay{ position:fixed; inset:0; z-index:300; background:#000; display:none; flex-direction:column; }
+#playerOverlay.open{ display:flex; }
+#playerTop{
+  position:absolute; top:0; left:0; right:0; z-index:10; display:flex; align-items:center; gap:14px;
+  padding:16px 20px; background:linear-gradient(180deg, rgba(0,0,0,.85), transparent);
+}
+#playerTop .back-btn{ width:42px; height:42px; border-radius:50%; background:rgba(0,0,0,.5); font-size:20px; color:#fff; }
+#playerTop .p-title{ font-size:17px; font-weight:700; }
+#playerTop .p-meta{ font-size:12px; color:var(--muted); margin-top:2px; }
+#playerWrap{ flex:1; display:flex; align-items:center; justify-content:center; position:relative; }
+#playerVideo{ width:100%; height:100%; max-width:100vw; max-height:100vh; background:#000; outline:none; }
+#playerControls{
+  position:absolute; bottom:0; left:0; right:0; z-index:10; padding:30px 20px 16px;
+  background:linear-gradient(0deg, rgba(0,0,0,.85), transparent);
+  display:flex; align-items:center; gap:14px; transition:opacity .3s;
+}
+#playerControls.hidden{ opacity:0; pointer-events:none; }
+#playerSeek{ flex:1; height:4px; -webkit-appearance:none; appearance:none; background:#444; border-radius:2px; outline:none; }
+#playerSeek::-webkit-slider-thumb{ -webkit-appearance:none; width:14px; height:14px; border-radius:50%; background:var(--red); cursor:pointer; }
+#playerTime{ font-size:13px; color:#e5e5e5; white-space:nowrap; }
+.quality-hint{ font-size:12px; color:var(--muted); white-space:nowrap; }
+
+/* ============ 设置弹层 ============ */
+#settingsOverlay{ position:fixed; inset:0; z-index:250; background:rgba(0,0,0,.7); display:none; align-items:center; justify-content:center; padding:20px; }
+#settingsOverlay.open{ display:flex; }
+#settingsBox{ background:#181818; border-radius:14px; width:100%; max-width:520px; padding:26px; box-shadow:0 20px 60px rgba(0,0,0,.7); max-height:85vh; overflow-y:auto; }
+#settingsBox h2{ font-size:20px; margin-bottom:18px; display:flex; align-items:center; justify-content:space-between; }
+#settingsBox h2 .close{ font-size:22px; color:#999; cursor:pointer; }
+.setting-field{ margin-bottom:18px; }
+.setting-field label{ display:block; font-size:13px; color:var(--muted); margin-bottom:8px; }
+.setting-field input, .setting-field select{ width:100%; padding:10px 12px; border-radius:6px; border:1px solid #444; background:#111; color:#fff; font-size:14px; outline:none; }
+.setting-field input:focus{ border-color:var(--red); }
+.setting-note{ font-size:12px; color:#888; line-height:1.7; margin-top:6px; }
+.mode-badge{ display:inline-block; font-size:12px; padding:3px 10px; border-radius:12px; margin-bottom:10px; }
+.mode-tmdb{ background:rgba(1,180,228,.18); color:#01b4e4; }
+.mode-demo{ background:rgba(245,197,24,.15); color:var(--star); }
+#modeNotice{ text-align:center; color:var(--muted); font-size:13px; padding:10px 0 4px; }
+
+/* ============ 页脚 ============ */
+footer{ text-align:center; color:#666; font-size:12px; padding:36px 20px 20px; }
+
+/* ============ 下载 / 离线缓存（新增模块） ============ */
+/* 进度条容器与进度条 */
+.progress-wrap{ background:var(--bg2); border-radius:10px; padding:14px 16px; margin-top:14px; }
+.progress-head{ display:flex; align-items:center; justify-content:space-between; font-size:13px; color:#e5e5e5; margin-bottom:10px; }
+.progress-bar{ height:6px; background:#333; border-radius:3px; overflow:hidden; }
+.progress-fill{ height:100%; width:0%; background:var(--red); border-radius:3px; transition:width .25s; }
+.progress-pct{ font-weight:700; color:var(--red); }
+.progress-cancel{ padding:4px 14px; border-radius:6px; background:rgba(255,255,255,.14); color:#fff; font-size:12px; }
+.progress-cancel:hover{ background:rgba(255,255,255,.25); }
+/* 缓存列表条目 */
+.cache-item{
+  display:flex; align-items:center; gap:14px; background:var(--bg2); border-radius:10px;
+  padding:14px 16px; margin-bottom:12px; flex-wrap:wrap;
+}
+.cache-poster{ width:56px; aspect-ratio:2/3; border-radius:6px; background-size:cover; background-position:center; flex:0 0 auto; }
+.cache-info{ flex:1; min-width:140px; }
+.cache-title{ font-size:15px; font-weight:700; margin-bottom:4px; }
+.cache-meta{ font-size:12px; color:var(--muted); }
+.cache-actions{ display:flex; gap:10px; flex-wrap:wrap; }
+.cache-actions .btn{ padding:8px 18px; font-size:13px; }
+.btn-gray{ background:#3a3f4a; color:#e8e8e8; }
+.btn-gray:hover{ background:#4a505c; }
+.btn-sm{ padding:6px 12px; font-size:13px; }
+.progress-text.err{ color:#ff6b6b; }
+
+/* ============ 响应式：手机端 ============ */
+@media (max-width:768px){
+  .nav, #searchBox{ display:none; }
+  #hamburger{ display:block; }
+  .row-scroll .card{ width:124px; }
+  .hero{ height:56vh; min-height:340px; }
+  .hero-inner{ padding-bottom:36px; }
+  .hero-overview{ display:none; }
+  .btn{ padding:8px 18px; font-size:14px; }
+  .detail-backdrop{ height:38vh; }
+  #tvHint{ display:none; }
+}
+/* 电视大屏：焦点明显 */
+@media (min-width:1400px){
+  html{ font-size:18px; }
+  .row-scroll .card{ width:220px; }
+  .grid{ grid-template-columns:repeat(auto-fill, minmax(200px,1fr)); }
+  .card .card-title{ font-size:17px; }
+  .card .card-sub{ font-size:14px; }
+  .nav button{ font-size:18px; padding:10px 18px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ============ 顶部导航 ============ -->
+<header id="topbar">
+  <div class="logo" data-nav="home" tabindex="0">Marvis<span> Cinema</span></div>
+  <button id="hamburger" aria-label="菜单">☰</button>
+  <nav class="nav" id="mainNav">
+    <button class="nav-item active" data-nav="home">首页</button>
+    <button class="nav-item" data-nav="movies">电影</button>
+    <button class="nav-item" data-nav="tv">电视剧</button>
+    <button class="nav-item" data-nav="favorites">我的收藏</button>
+    <button class="nav-item" data-nav="cache">我的缓存</button>
+  </nav>
+  <div id="searchBox">
+    <input id="searchInput" type="text" placeholder="搜索电影 / 电视剧..." autocomplete="off">
+    <button id="searchBtn" aria-label="搜索">🔍</button>
+  </div>
+  <button id="settingsBtn" aria-label="设置">⚙</button>
+</header>
+<nav id="mobileNav">
+  <button data-nav="home">首页</button>
+  <button data-nav="movies">电影</button>
+  <button data-nav="tv">电视剧</button>
+  <button data-nav="favorites">我的收藏</button>
+  <button data-nav="cache">我的缓存</button>
+</nav>
+
+<!-- 电视端提示条 -->
+<div id="tvHint" style="display:none;">
+  <span>📺 电视端提示：请用遥控器方向键 + OK 键操作</span>
+  <button class="close" id="tvHintClose">✕</button>
+</div>
+
+<!-- ============ 首页 ============ -->
+<section id="page-home" class="page active">
+  <div id="heroArea"></div>
+  <div id="homeRows"></div>
+</section>
+
+<!-- ============ 电影页 ============ -->
+<section id="page-movies" class="page">
+  <div class="container">
+    <h2 class="section-title">电影</h2>
+    <div id="moviesGrid" class="grid"></div>
+  </div>
+</section>
+
+<!-- ============ 电视剧页 ============ -->
+<section id="page-tv" class="page">
+  <div class="container">
+    <h2 class="section-title">电视剧</h2>
+    <div id="tvGrid" class="grid"></div>
+  </div>
+</section>
+
+<!-- ============ 我的收藏页 ============ -->
+<section id="page-favorites" class="page">
+  <div class="container">
+    <h2 class="section-title">我的收藏</h2>
+    <div id="favGrid" class="grid"></div>
+  </div>
+</section>
+
+<!-- ============ 我的缓存页（离线缓存） ============ -->
+<section id="page-cache" class="page">
+  <div class="container">
+    <h2 class="section-title">我的缓存</h2>
+    <div id="cacheStat" class="search-stat"></div>
+    <div id="cacheList"></div>
+  </div>
+</section>
+
+<!-- ============ 搜索页 ============ -->
+<section id="page-search" class="page">
+  <div class="container">
+    <h2 class="section-title" id="searchTitle">搜索结果</h2>
+    <div class="search-stat" id="searchStat"></div>
+    <div id="searchGrid" class="grid"></div>
+  </div>
+</section>
+
+<!-- ============ 详情弹层 ============ -->
+<div id="detailOverlay"><div id="detailBox"></div></div>
+
+<!-- ============ 播放器 ============ -->
+<div id="playerOverlay">
+  <div id="playerTop">
+    <button class="back-btn" id="playerBack">←</button>
+    <div>
+      <div class="p-title" id="playerTitle"></div>
+      <div class="p-meta" id="playerMeta"></div>
+    </div>
+  </div>
+  <div id="playerWrap">
+    <video id="playerVideo" controls autoplay playsinline></video>
+    <div id="playerProgress"></div>
+    <div id="playerControls">
+      <button class="btn btn-red" id="playerPlayPause">暂停</button>
+      <input type="range" id="playerSeek" min="0" max="1000" value="0">
+      <span id="playerTime">0:00 / 0:00</span>
+      <span class="quality-hint" id="playerQuality">清晰度：自动</span>
+      <button class="btn btn-info" id="playerDownload">⬇ 下载</button>
+      <button class="btn btn-info" id="playerCache">📦 缓存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 设置弹层 ============ -->
+<div id="settingsOverlay">
+  <div id="settingsBox">
+    <h2>设置 <button class="close" id="settingsClose">✕</button></h2>
+    <span class="mode-badge" id="modeBadge"></span>
+    <div class="setting-field">
+      <label>TMDB API Key（v3 认证）</label>
+      <input id="tmdbKeyInput" type="password" placeholder="粘贴你的 TMDB API Key">
+    </div>
+    <div class="setting-field">
+      <button class="btn btn-red" id="saveKeyBtn" style="width:100%;justify-content:center;">保存并切换到 TMDB 模式</button>
+    </div>
+    <div class="setting-field">
+      <button class="btn btn-info" id="useDemoBtn" style="width:100%;justify-content:center;">使用演示模式（无 Key）</button>
+    </div>
+    <div class="setting-note">
+      说明：TMDB 模式实时调用 TMDB API v3，电影/电视剧按年份最新到最旧排序；未填 Key 时自动使用内置演示数据。<br>
+      API Key 仅保存在本机浏览器 localStorage，不会上传。
+    </div>
+    <div id="modeNotice"></div>
+  </div>
+</div>
+
+<footer>仅供个人学习使用 · Marvis Cinema</footer>
+
+<script>
+/* ============================================================
+   Marvis Cinema - 单文件影视 Web 应用
+   模块：配置 / 演示数据 / 状态 / TMDB 获取 / UI 渲染 /
+         详情 / 播放器 / 收藏 / 电视遥控焦点 / 事件初始化
+   ============================================================ */
+
+/* ---------- 1. 配置与常量 ---------- */
+const TMDB_API = "https://api.themoviedb.org/3";
+const TMDB_IMG = "https://image.tmdb.org/t/p/";
+const POSTER_W = "w500";
+const BACKDROP_W = "w1280";
+const IS_PREVIEW = location.hash.indexOf("preview") > -1; // #preview 截图模式
+
+/* ---------- 2. 演示数据（真实知名影视，海报渐变占位） ---------- */
+const TEST_STREAMS = [
+  "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
+  "https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8",
+  "https://bitdash-a.akamaihd.net/content/sintel/hls/playlist.m3u8",
+  "https://cph-p2p-msl.akamaized.net/hls/live/2000341/test/master.m3u8",
+  "https://test-streams.mux.dev/test_001/stream.m3u8"
+];
+const PALETTE = [
+  ["#5c2a2a","#141414"],["#1f3a5f","#0d1b2a"],["#3d2b56","#1a1025"],
+  ["#1d4d3e","#0d241c"],["#5a3d1f","#241608"],["#4a235a","#1a0b24"],
+  ["#21618c","#0b2239"],["#7b241c","#2e0d09"],["#1e8449","#0d2e18"],
+  ["#6c3483","#241033"],["#b03a2e","#3a100d"],["#1f618d","#0c2438"]
+];
+function hashStr(s){ let h=0; for(let i=0;i<s.length;i++){ h=(h*31+s.charCodeAt(i))>>>0; } return h; }
+function gradientFor(t){ const p=PALETTE[hashStr(t)%PALETTE.length]; return "linear-gradient(135deg,"+p[0]+" 0%,"+p[1]+" 100%)"; }
+
+const DEMO_DATA = [
+  // ===== 电影（按年份从新到旧） =====
+  { id:1026, type:"movie", title:"奥本海默", year:2023, rating:8.9, genres:["剧情","历史","传记"],
+    overview:"'原子弹之父'奥本海默主导曼哈顿计划，见证人类掌握毁灭力量后陷入道德与政治的挣扎。",
+    cast:["基里安·墨菲","艾米莉·布朗特","马特·达蒙"], videoUrl:TEST_STREAMS[0] },
+  { id:1012, type:"movie", title:"满江红", year:2023, rating:7.0, genres:["悬疑","喜剧","古装"],
+    overview:"南宋绍兴年间，宰相秦桧率兵与金国会谈，密信失窃，小兵张大与亲兵营副统领孙均被卷入谜局。",
+    cast:["沈腾","易烊千玺","张译"], videoUrl:TEST_STREAMS[1] },
+  { id:1010, type:"movie", title:"流浪地球2", year:2023, rating:8.3, genres:["科幻","冒险","灾难"],
+    overview:"太阳危机迫近，人类决定建造万座行星发动机，数字生命与移山计划之争白热化，人类命运悬于一线。",
+    cast:["吴京","刘德华","李雪健"], videoUrl:TEST_STREAMS[2] },
+  { id:1013, type:"movie", title:"长津湖", year:2021, rating:7.4, genres:["战争","历史","剧情"],
+    overview:"抗美援朝战争中，志愿军第七穿插连在极寒严酷的长津湖战场与美军王牌部队展开殊死对决。",
+    cast:["吴京","易烊千玺","段奕宏"], videoUrl:TEST_STREAMS[3] },
+  { id:1025, type:"movie", title:"沙丘", year:2021, rating:8.3, genres:["科幻","冒险","剧情"],
+    overview:"厄拉科斯星球出产宇宙最珍贵的香料，少年保罗随家族接管沙丘，却卷入阴谋与复仇的命运漩涡。",
+    cast:["提莫西·查拉梅","丽贝卡·弗格森","奥斯卡·伊萨克"], videoUrl:TEST_STREAMS[4] },
+  { id:1001, type:"movie", title:"星际穿越", year:2014, rating:8.7, genres:["科幻","冒险","剧情"],
+    overview:"近未来的地球黄沙遍野，前 NASA 宇航员库珀与儿女一同生活。在一次沙尘暴后，他发现了引力异常现象，并受命踏上穿越虫洞、寻找人类新家园的星际之旅。",
+    cast:["马修·麦康纳","安妮·海瑟薇","杰西卡·查斯坦"], videoUrl:TEST_STREAMS[0] },
+  { id:1002, type:"movie", title:"盗梦空间", year:2010, rating:8.8, genres:["科幻","动作","悬疑"],
+    overview:"柯布与团队进入他人梦境窃取机密，而这次他接下一项不可能的任务：植入想法。多重梦境层层嵌套，现实与梦境逐渐模糊。",
+    cast:["莱昂纳多·迪卡普里奥","约瑟夫·高登-莱维特","艾伦·佩吉"], videoUrl:TEST_STREAMS[1] },
+  { id:1014, type:"movie", title:"让子弹飞", year:2010, rating:9.0, genres:["剧情","喜剧","动作"],
+    overview:"北洋年间，悍匪张牧之摇身一变化名清官马邦德上任鹅城，与地方恶霸黄四郎斗智斗勇。",
+    cast:["姜文","葛优","周润发"], videoUrl:TEST_STREAMS[2] },
+  { id:1006, type:"movie", title:"阿凡达", year:2009, rating:8.0, genres:["科幻","动作","冒险"],
+    overview:"残疾军人杰克通过阿凡达化身进入潘多拉星球，在纳美人部落中逐渐改变立场，最终为守护家园而战。",
+    cast:["萨姆·沃辛顿","佐伊·索尔达娜","西格妮·韦弗"], videoUrl:TEST_STREAMS[3] },
+  { id:1005, type:"movie", title:"蝙蝠侠：黑暗骑士", year:2008, rating:9.0, genres:["动作","犯罪","剧情"],
+    overview:"小丑在哥谭市掀起混乱，蝙蝠侠必须在正义与代价之间做出选择，哈维·登特的堕落更让他心力交瘁。",
+    cast:["克里斯蒂安·贝尔","希斯·莱杰","艾伦·艾克哈特"], videoUrl:TEST_STREAMS[4] },
+  { id:1018, type:"movie", title:"功夫", year:2004, rating:8.8, genres:["喜剧","动作","犯罪"],
+    overview:"小混混星仔冒充斧头帮踏入'猪笼城寨'，却在高手对决中领悟功夫真谛，成为一代宗师。",
+    cast:["周星驰","元秋","元华"], videoUrl:TEST_STREAMS[0] },
+  { id:1023, type:"movie", title:"指环王：王者无敌", year:2003, rating:9.3, genres:["奇幻","冒险","动作"],
+    overview:"魔戒远征队兵分多路，佛罗多与山姆深入魔多销毁魔戒，刚铎与索伦大军展开终局大战。",
+    cast:["伊利亚·伍德","伊恩·麦克莱恩","维果·莫腾森"], videoUrl:TEST_STREAMS[1] },
+  { id:1019, type:"movie", title:"千与千寻", year:2001, rating:9.4, genres:["动画","奇幻","冒险"],
+    overview:"少女千寻误入神灵世界，父母变成猪，她必须为汤婆婆工作，找回自己的名字并拯救家人。",
+    cast:["柊瑠美","入野自由","夏木真理"], videoUrl:TEST_STREAMS[2] },
+  { id:1022, type:"movie", title:"黑客帝国", year:1999, rating:9.0, genres:["科幻","动作"],
+    overview:"程序员尼奥发现现实世界是机器构建的矩阵，他成为'救世主'，带领人类反抗机器统治。",
+    cast:["基努·里维斯","劳伦斯·菲什伯恩","凯瑞-安·莫斯"], videoUrl:TEST_STREAMS[3] },
+  { id:1024, type:"movie", title:"搏击俱乐部", year:1999, rating:9.0, genres:["剧情","悬疑","惊悚"],
+    overview:"失眠的白领与肥皂商人泰勒创立地下搏击俱乐部，一场关于消费主义与自我毁灭的实验逐渐失控。",
+    cast:["爱德华·诺顿","布拉德·皮特","海伦娜·伯翰·卡特"], videoUrl:TEST_STREAMS[4] },
+  { id:1007, type:"movie", title:"泰坦尼克号", year:1997, rating:9.5, genres:["爱情","剧情","灾难"],
+    overview:"穷画家杰克与贵族少女露丝在泰坦尼克号上相遇相爱，巨轮撞上冰山沉没，一段跨越阶级的爱情在灾难中永恒。",
+    cast:["莱昂纳多·迪卡普里奥","凯特·温丝莱特","比利·赞恩"], videoUrl:TEST_STREAMS[0] },
+  { id:1017, type:"movie", title:"大话西游之大圣娶亲", year:1995, rating:9.2, genres:["喜剧","爱情","奇幻"],
+    overview:"至尊宝为救白晶晶使用月光宝盒回到五百年前，却与紫霞仙子展开一段刻骨铭心的爱恋。",
+    cast:["周星驰","朱茵","莫文蔚"], videoUrl:TEST_STREAMS[1] },
+  { id:1003, type:"movie", title:"肖申克的救赎", year:1994, rating:9.7, genres:["剧情","犯罪"],
+    overview:"银行家安迪蒙冤入狱，在肖申克监狱中凭借智慧与希望，用二十年时间凿出一条通往自由的道路。",
+    cast:["蒂姆·罗宾斯","摩根·弗里曼","鲍勃·冈顿"], videoUrl:TEST_STREAMS[2] },
+  { id:1015, type:"movie", title:"霸王别姬", year:1993, rating:9.6, genres:["剧情","爱情","历史"],
+    overview:"程蝶衣与段小楼从小一起学戏，因《霸王别姬》成名，历经时代变迁，戏梦人生终成悲歌。",
+    cast:["张国荣","张丰毅","巩俐"], videoUrl:TEST_STREAMS[3] },
+  { id:1016, type:"movie", title:"活着", year:1994, rating:9.3, genres:["剧情","家庭","历史"],
+    overview:"福贵嗜赌成性败光家产，历经内战、大跃进、文革等时代动荡，一家人相依为命顽强求生。",
+    cast:["葛优","巩俐","牛犇"], videoUrl:TEST_STREAMS[4] },
+  { id:1020, type:"movie", title:"阿甘正传", year:1994, rating:9.5, genres:["剧情","爱情"],
+    overview:"智商仅 75 的阿甘凭借单纯与坚持，走过橄榄球场、越战、捕虾船，成为美国梦的传奇。",
+    cast:["汤姆·汉克斯","罗宾·怀特","加里·西尼斯"], videoUrl:TEST_STREAMS[0] },
+  { id:1021, type:"movie", title:"低俗小说", year:1994, rating:8.9, genres:["剧情","犯罪"],
+    overview:"几个看似独立的故事在洛杉矶交织，暴力、幽默与宿命在非线性叙事中环环相扣。",
+    cast:["约翰·特拉沃尔塔","乌玛·瑟曼","塞缪尔·杰克逊"], videoUrl:TEST_STREAMS[1] },
+  { id:1004, type:"movie", title:"教父", year:1972, rating:9.3, genres:["剧情","犯罪"],
+    overview:"柯里昂家族首领维托退休后，小儿子迈克尔从不愿卷入家族事务到被迫接过权力，成为新一代教父。",
+    cast:["马龙·白兰度","阿尔·帕西诺","詹姆斯·肯恩"], videoUrl:TEST_STREAMS[2] },
+  { id:1008, type:"movie", title:"复仇者联盟4：终局之战", year:2019, rating:8.5, genres:["科幻","动作","冒险"],
+    overview:"灭霸打响响指后世界支离破碎，幸存的复仇者们穿越时间线收集无限宝石，发起最终一战。",
+    cast:["小罗伯特·唐尼","克里斯·埃文斯","马克·鲁法洛"], videoUrl:TEST_STREAMS[3] },
+  { id:1009, type:"movie", title:"流浪地球", year:2019, rating:7.9, genres:["科幻","冒险","灾难"],
+    overview:"太阳即将毁灭，人类启动流浪地球计划，推动地球逃离太阳系。危机时刻，各国救援队为点燃发动机而拼尽全力。",
+    cast:["吴京","屈楚萧","李光洁"], videoUrl:TEST_STREAMS[4] },
+  { id:1011, type:"movie", title:"哪吒之魔童降世", year:2019, rating:8.4, genres:["动画","奇幻","喜剧"],
+    overview:"哪吒本是灵珠转世却阴差阳错成为魔丸，生而为魔的他逆天改命，喊出'我命由我不由天'。",
+    cast:["吕艳婷","囧森瑟夫","瀚墨"], videoUrl:TEST_STREAMS[0] },
+
+  // ===== 电视剧（按首播年份从新到旧） =====
+  { id:2013, type:"tv", title:"漫长的季节", year:2023, rating:9.4, genres:["悬疑","剧情","犯罪"],
+    overview:"出租车司机王响联手妹夫龚彪、刑警马队调查碎尸案，跨越十八年时间，揭开被掩埋的真相。",
+    cast:["范伟","秦昊","陈明昊"], videoUrl:TEST_STREAMS[1] },
+  { id:2011, type:"tv", title:"三体", year:2023, rating:8.7, genres:["科幻","悬疑"],
+    overview:"纳米科学家汪淼被卷入'科学边界'组织的谜团，地球文明与三体文明的第一次接触由此展开。",
+    cast:["张鲁一","于和伟","陈瑾"], videoUrl:TEST_STREAMS[2] },
+  { id:2012, type:"tv", title:"狂飙", year:2023, rating:8.5, genres:["剧情","犯罪"],
+    overview:"刑警安欣与鱼贩高启强二十年正邪较量，见证一个黑恶势力在时代夹缝中崛起与覆灭。",
+    cast:["张译","张颂文","李一桐"], videoUrl:TEST_STREAMS[3] },
+  { id:2014, type:"tv", title:"觉醒年代", year:2021, rating:9.3, genres:["历史","剧情"],
+    overview:"从新文化运动到中国共产党建立，陈独秀、李大钊、胡适等先驱探索救国道路的热血年代。",
+    cast:["于和伟","张桐","马少骅"], videoUrl:TEST_STREAMS[4] },
+  { id:2015, type:"tv", title:"隐秘的角落", year:2020, rating:8.8, genres:["悬疑","剧情","犯罪"],
+    overview:"三个孩子在景区无意拍下一场谋杀，冒险由此展开，每个人心底的隐秘角落被逐一揭开。",
+    cast:["秦昊","王景春","荣梓杉"], videoUrl:TEST_STREAMS[0] },
+  { id:2008, type:"tv", title:"最后生还者", year:2023, rating:8.7, genres:["科幻","剧情","冒险"],
+    overview:"真菌感染摧毁现代文明，走私客乔尔护送少女艾莉穿越美国，两人在末日中相互扶持。",
+    cast:["佩德罗·帕斯卡","贝拉·拉姆齐","安娜·托芙"], videoUrl:TEST_STREAMS[1] },
+  { id:2009, type:"tv", title:"曼达洛人", year:2019, rating:8.6, genres:["科幻","动作","冒险"],
+    overview:"银河帝国覆灭后，独行赏金猎人曼达洛人受托护送幼年原力敏感者'尤达宝宝'，一路躲避追捕。",
+    cast:["佩德罗·帕斯卡","吉安卡罗·埃斯波西托","卡尔·韦瑟斯"], videoUrl:TEST_STREAMS[2] },
+  { id:2004, type:"tv", title:"西部世界", year:2016, rating:8.9, genres:["科幻","悬疑","剧情"],
+    overview:"高科技主题乐园中的仿生人开始觉醒自我意识，人类与造物之间的界限被彻底颠覆。",
+    cast:["埃文·蕾切尔·伍德","安东尼·霍普金斯","艾德·哈里斯"], videoUrl:TEST_STREAMS[3] },
+  { id:2005, type:"tv", title:"怪奇物语", year:2016, rating:8.8, genres:["科幻","悬疑","惊悚"],
+    overview:"印第安纳州小镇男孩神秘失踪，小伙伴们发现政府秘密实验与异次元'颠倒世界'的存在。",
+    cast:["米莉·波比·布朗","芬恩·伍法德","薇诺娜·瑞德"], videoUrl:TEST_STREAMS[4] },
+  { id:2001, type:"tv", title:"权力的游戏", year:2011, rating:9.4, genres:["奇幻","剧情","战争"],
+    overview:"维斯特洛大陆七大王国的权力纷争，龙母、史塔克、兰尼斯特等家族为铁王座展开残酷角逐。",
+    cast:["彼特·丁拉基","艾米莉亚·克拉克","基特·哈灵顿"], videoUrl:TEST_STREAMS[0] },
+  { id:2010, type:"tv", title:"神探夏洛克", year:2010, rating:9.5, genres:["悬疑","犯罪","剧情"],
+    overview:"福尔摩斯搬到现代伦敦，与华生组成搭档，用天才推理破解一桩桩离奇案件。",
+    cast:["本尼迪克特·康伯巴奇","马丁·弗瑞曼","安德鲁·斯科特"], videoUrl:TEST_STREAMS[1] },
+  { id:2006, type:"tv", title:"黑镜", year:2011, rating:8.8, genres:["科幻","惊悚","剧情"],
+    overview:"每集一个独立故事，聚焦现代科技对人性的侵蚀与讽刺，黑色寓言发人深省。",
+    cast:["丹尼尔·卡卢亚","海莉·阿特维尔","乔恩·哈姆"], videoUrl:TEST_STREAMS[2] },
+  { id:2002, type:"tv", title:"绝命毒师", year:2008, rating:9.6, genres:["剧情","犯罪","惊悚"],
+    overview:"化学老师沃尔特被诊断出癌症后，与昔日学生联手制毒，一步步堕入犯罪深渊。",
+    cast:["布莱恩·科兰斯顿","亚伦·保尔","安娜·冈"], videoUrl:TEST_STREAMS[3] },
+  { id:2007, type:"tv", title:"王冠", year:2016, rating:8.7, genres:["剧情","历史"],
+    overview:"伊丽莎白二世登基后的王室风云，个人情感与公共职责在历史洪流中反复碰撞。",
+    cast:["克莱尔·芙伊","马特·史密斯","奥利维娅·科尔曼"], videoUrl:TEST_STREAMS[4] },
+  { id:2003, type:"tv", title:"老友记", year:1994, rating:9.7, genres:["喜剧","爱情"],
+    overview:"六位好友在纽约曼哈顿的日常生活，关于友情、爱情与成长的笑泪交织。",
+    cast:["詹妮弗·安妮斯顿","柯特妮·考克斯","丽莎·库卓"], videoUrl:TEST_STREAMS[0] }
+];
+
+/* ---------- 3. 状态管理 ---------- */
+const LS_KEY = "marvis_tmdb_key", LS_FAV = "marvis_favorites", LS_HINT = "marvis_tv_hint";
+let tmdbKey = localStorage.getItem(LS_KEY) || "";
+let favorites = JSON.parse(localStorage.getItem(LS_FAV) || "[]");
+let currentMode = "demo";          // demo | tmdb
+let tmdbMovies = [], tmdbTv = [];  // TMDB 缓存
+let allDemo = DEMO_DATA;
+let detailItem = null;             // 当前详情条目
+let currentSearch = "";
+
+function isDemo(){ return currentMode === "demo" || IS_PREVIEW; }
+function favKey(it){ return it.type + "-" + it.id; }
+function isFav(it){ return favorites.indexOf(favKey(it)) > -1; }
+function toggleFav(it){
+  const k = favKey(it);
+  const i = favorites.indexOf(k);
+  if(i > -1){ favorites.splice(i,1); } else { favorites.push(k); }
+  localStorage.setItem(LS_FAV, JSON.stringify(favorites));
+  refreshFavButtons();
+  if(document.getElementById("page-favorites").classList.contains("active")) renderFavorites();
+}
+function getModeTitle(){ return currentMode === "tmdb" ? "TMDB" : "演示"; }
+
+/* ---------- 工具：图片地址 / 占位 ---------- */
+function posterOf(it){
+  if(it.poster_path) return TMDB_IMG + POSTER_W + it.poster_path;
+  if(it.poster) return it.poster;
+  return null; // 渐变占位
+}
+function backdropOf(it){
+  if(it.backdrop_path) return TMDB_IMG + BACKDROP_W + it.backdrop_path;
+  if(it.backdrop) return it.backdrop;
+  return posterOf(it);
+}
+
+/* ---------- 4. TMDB 数据获取 ---------- */
+async function tmdbFetch(path){
+  const r = await fetch(TMDB_API + path + (path.indexOf("?")>-1?"&":"?") + "api_key=" + encodeURIComponent(tmdbKey) + "&language=zh-CN&region=CN");
+  if(!r.ok) throw new Error("TMDB HTTP " + r.status);
+  return r.json();
+}
+// 演示模式数据统一结构：兼容 TMDB 字段（poster_path/backdrop_path/name）
+function toItem(o, type){
+  return {
+    id: o.id, type: type,
+    title: o.title || o.name || o.original_title || "",
+    year: parseInt(o.release_date || o.first_air_date || "0", 10) || 0,
+    rating: o.vote_average || 0,
+    genres: (o.genres || []).map(g => g.name),
+    overview: o.overview || "",
+    cast: (o.credits && o.credits.cast ? o.credits.cast.slice(0,8).map(c=>c.name) : []),
+    poster_path: o.poster_path || null,
+    backdrop_path: o.backdrop_path || null,
+    videoUrl: TEST_STREAMS[Math.abs((o.id||0)) % TEST_STREAMS.length]
+  };
+}
+async function loadTMDBMovies(){
+  const j = await tmdbFetch("/discover/movie?sort_by=primary_release_date.desc&include_adult=false&page=1");
+  return (j.results || []).map(o => toItem(o, "movie"));
+}
+async function loadTMDBTv(){
+  const j = await tmdbFetch("/discover/tv?sort_by=first_air_date.desc&include_adult=false&page=1");
+  return (j.results || []).map(o => toItem(o, "tv"));
+}
+async function searchTMDB(q){
+  const j = await tmdbFetch("/search/multi?query=" + encodeURIComponent(q) + "&include_adult=false");
+  return (j.results || [])
+    .filter(o => o.media_type === "movie" || o.media_type === "tv")
+    .map(o => toItem(o, o.media_type));
+}
+// 演示模式本地搜索（按片名关键词）
+function searchDemo(q){
+  q = q.toLowerCase();
+  return allDemo.filter(it => it.title.toLowerCase().indexOf(q) > -1);
+}
+
+/* ---------- 5. UI 渲染 ---------- */
+function el(html){ const d=document.createElement("div"); d.innerHTML=html.trim(); return d.firstChild; }
+function stars(r){ return r ? "★ " + Number(r).toFixed(1) : ""; }
+
+// 卡片 HTML（isRow: 横向行样式；grid 用 .grid .card 覆盖宽度）
+function cardHTML(it, opts){
+  opts = opts || {};
+  const img = posterOf(it);
+  const posterBg = img ? "background-image:url('" + img + "')" : "background:" + gradientFor(it.title);
+  const grad = img ? "" : '<div class="grad-ph">' + it.title.charAt(0) + '</div>';
+  const favOn = isFav(it) ? "on" : "";
+  const typeBadge = opts.showType ? '<span class="badge-type ' + (it.type==="tv"?"badge-tv":"") + '">' + (it.type==="tv"?"剧":"影") + '</span>' : "";
+  return '<div class="card" data-id="' + it.id + '" data-type="' + it.type + '" tabindex="0">'
+    + '<div class="poster" style="' + posterBg + '">' + grad
+    + '<button class="fav ' + favOn + '" data-fav="' + favKey(it) + '" aria-label="收藏">' + (favOn?"♥":"♡") + '</button>'
+    + '</div>'
+    + '<div class="card-info"><div class="card-title">' + it.title + '</div>'
+    + '<div class="card-sub">' + (it.year || "") + ' ' + stars(it.rating) + ' ' + typeBadge + '</div></div>'
+    + '</div>';
+}
+
+// 渲染横向滚动行
+function renderRow(title, list, id, count){
+  const box = document.getElementById(id);
+  if(!list || !list.length){ return; }
+  box.innerHTML = '<div class="row"><h3 class="row-title">' + title + ' <span class="count">' + (count || list.length) + ' 部</span></h3>'
+    + '<div class="row-scroll" data-row="' + id + '">' + list.map(c => cardHTML(c, {showType:true})).join("") + '</div></div>';
+}
+// 渲染网格
+function renderGrid(containerId, list, emptyText){
+  const c = document.getElementById(containerId);
+  if(!list || !list.length){ c.innerHTML = '<div class="empty">' + (emptyText || "暂无内容") + '</div>'; return; }
+  c.innerHTML = list.map(card => cardHTML(card, {showType:true})).join("");
+}
+
+// 排序：按年份从新到旧（TMDB 已由 sort_by 保证，演示数据同样保证）
+function sortByYearDesc(a,b){ return (b.year||0) - (a.year||0) || (b.rating||0)-(a.rating||0); }
+
+// Hero 渲染
+function heroHTML(it){
+  const bg = backdropOf(it);
+  const bgStyle = bg ? "background-image:url('" + bg + "');" : "background:" + gradientFor(it.title) + ";";
+  const meta = '<span>' + (it.type==="movie"?"电影":"电视剧") + '</span>'
+    + (it.year ? '<span>' + it.year + '</span>' : "")
+    + (it.rating ? '<span class="star">' + stars(it.rating) + '</span>' : "");
+  return '<div class="hero" style="' + bgStyle + '"><div class="hero-inner">'
+    + '<span class="hero-badge">今日推荐</span>'
+    + '<h1 class="hero-title">' + it.title + '</h1>'
+    + '<div class="hero-meta">' + meta + '</div>'
+    + '<p class="hero-overview">' + it.overview + '</p>'
+    + '<div class="hero-btns">'
+    + '<button class="btn btn-play" data-play="' + favKey(it) + '">▶ 立即播放</button>'
+    + '<button class="btn btn-info" data-detail="' + favKey(it) + '">ℹ 详情</button>'
+    + '</div></div></div>';
+}
+
+// 首页：Hero + 内容行
+async function renderHome(){
+  const movies = isDemo() ? allDemo.filter(x=>x.type==="movie").slice().sort(sortByYearDesc) : tmdbMovies;
+  const tvs    = isDemo() ? allDemo.filter(x=>x.type==="tv").slice().sort(sortByYearDesc) : tmdbTv;
+  const heroPick = (movies && movies.length ? movies[0] : (tvs && tvs.length ? tvs[0] : null));
+  if(heroPick){ document.getElementById("heroArea").innerHTML = heroHTML(heroPick); }
+  const latest = movies.slice().sort(sortByYearDesc).slice(0,14);
+  const topRated = movies.concat(tvs).slice().sort((a,b)=>(b.rating||0)-(a.rating||0)).slice(0,14);
+  renderRow("🔥 最新上映", latest, "rowLatest", latest.length);
+  renderRow("⭐ 高分佳作", topRated, "rowTop", topRated.length);
+  renderRow("🎬 电影", movies.slice(0,14), "rowMovies", movies.length);
+  renderRow("📺 电视剧", tvs.slice(0,14), "rowTv", tvs.length);
+  collectFocusables();
+}
+
+/* ---------- 6. 详情弹层 ---------- */
+function findItem(type, id){
+  if(isDemo()){ return allDemo.find(x => x.type===type && String(x.id)===String(id)); }
+  const pool = type === "movie" ? tmdbMovies : tmdbTv;
+  return pool.find(x => String(x.id) === String(id));
+}
+function openDetail(it){
+  detailItem = it;
+  const bg = backdropOf(it);
+  const bgStyle = bg ? "background-image:url('" + bg + "');" : "background:" + gradientFor(it.title) + ";";
+  const castHtml = it.cast && it.cast.length ? '<div class="detail-cast"><b>演员：</b>' + it.cast.join(" / ") + '</div>' : "";
+  const genresHtml = (it.genres && it.genres.length) ? '<div class="detail-genres">' + it.genres.map(g=>'<span class="chip">'+g+'</span>').join("") + '</div>' : "";
+  document.getElementById("detailBox").innerHTML =
+    '<div class="detail-backdrop" style="' + bgStyle + '">'
+    + '<button class="back-btn" id="detailClose">←</button>'
+    + '<div class="detail-head">'
+    + '<h2 class="detail-title">' + it.title + '</h2>'
+    + '<div class="detail-meta">'
+    + '<span class="year">' + (it.year || "未知") + '</span>'
+    + '<span>' + (it.type==="movie"?"电影":"电视剧") + '</span>'
+    + (it.rating ? '<span class="star">' + stars(it.rating) + '</span>' : "")
+    + '</div></div></div>'
+    + '<div class="detail-body">'
+    + genresHtml
+    + '<p class="detail-overview">' + (it.overview || "暂无简介") + '</p>'
+    + castHtml
+    + '<div class="detail-actions">'
+    + '<button class="btn btn-play" id="detailPlay">▶ 立即播放</button>'
+    + '<button class="btn btn-info" id="detailFav">' + (isFav(it) ? "♥ 已收藏" : "♡ 收藏") + '</button>'
+    + '<button class="btn btn-info" id="detailDownload">⬇ 下载</button>'
+    + '<button class="btn btn-info" id="detailCache">📦 缓存</button>'
+    + '</div>'
+    + '<div id="detailProgress"></div>'
+    + '<div class="source-box"><h4>播放地址（自用：粘贴 mp4 / webm / m3u8 直链）</h4>'
+    + '<input id="sourceInput" type="text" placeholder="https://example.com/video.m3u8 或 .mp4" value="' + (it.videoUrl || "") + '">'
+    + '<div class="row-btns"><button class="btn btn-red" id="sourcePlayBtn">播放该地址</button>'
+    + '<button class="btn btn-info" id="sourceResetBtn">恢复预置示例流</button></div>'
+    + '</div></div>';
+  document.getElementById("detailOverlay").classList.add("open");
+  document.body.style.overflow = "hidden";
+  bindDetailEvents(it);
+}
+function closeDetail(){
+  document.getElementById("detailOverlay").classList.remove("open");
+  document.body.style.overflow = "";
+  detailItem = null;
+}
+function bindDetailEvents(it){
+  document.getElementById("detailClose").onclick = closeDetail;
+  document.getElementById("detailPlay").onclick = function(){ openPlayer(it, it.videoUrl || document.getElementById("sourceInput").value); };
+  document.getElementById("detailFav").onclick = function(){ toggleFav(it); document.getElementById("detailFav").textContent = isFav(it) ? "♥ 已收藏" : "♡ 收藏"; };
+  document.getElementById("sourcePlayBtn").onclick = function(){ const v = document.getElementById("sourceInput").value.trim(); if(v){ openPlayer(it, v); } };
+  document.getElementById("sourceResetBtn").onclick = function(){ document.getElementById("sourceInput").value = it.videoUrl || ""; };
+  // 下载 / 缓存（新增模块）
+  document.getElementById("detailDownload").onclick = function(){
+    const v = document.getElementById("sourceInput").value.trim() || it.videoUrl || "";
+    downloadVideo(it, v, "detailProgress");
+  };
+  document.getElementById("detailCache").onclick = function(){
+    const v = document.getElementById("sourceInput").value.trim() || it.videoUrl || "";
+    cacheVideo(it, v, "detailProgress");
+  };
+}
+
+/* ---------- 7. 播放器（原生 video + hls.js） ---------- */
+let hls = null;
+let __playingItem = null;   // 当前播放条目（供下载/缓存按钮使用）
+function openPlayer(it, url){
+  if(!url){ alert("请先填写播放地址"); return; }
+  closeDetail();
+  document.getElementById("playerOverlay").classList.add("open");
+  __playingItem = it;
+  document.getElementById("playerTitle").textContent = it.title;
+  document.getElementById("playerMeta").textContent = (it.type==="movie"?"电影":"电视剧") + " · " + (it.year||"") + " · " + stars(it.rating);
+  const video = document.getElementById("playerVideo");
+  // 清理旧的 HLS 实例
+  if(hls){ hls.destroy(); hls = null; }
+  video.pause();
+  video.removeAttribute("src");
+  video.load();
+  // 若传入的是 objectURL（缓存播放），直接使用；否则按协议判断
+  const isBlob = /^blob:/.test(url);
+  const isHls = !isBlob && /\.m3u8(\?|$)/i.test(url);
+  if(isHls && window.Hls && Hls.isSupported()){
+    hls = new Hls({ maxBufferLength: 30 });
+    hls.loadSource(url);
+    hls.attachMedia(video);
+    hls.on(Hls.Events.MANIFEST_PARSED, function(){ video.play(); });
+    hls.on(Hls.Events.ERROR, function(e, data){
+      if(data.fatal){ document.getElementById("playerQuality").textContent = "播放出错，请检查地址"; }
+    });
+    document.getElementById("playerQuality").textContent = "清晰度：自动（HLS 切片流）";
+  } else if(video.canPlayType("application/vnd.apple.mpegurl") && isHls){
+    // Safari 原生 HLS
+    video.src = url;
+    video.play();
+    document.getElementById("playerQuality").textContent = "清晰度：自动（原生 HLS）";
+  } else {
+    video.src = url;
+    video.play();
+    document.getElementById("playerQuality").textContent = isBlob ? "清晰度：自动（离线缓存）" : "清晰度：自动";
+  }
+  bindPlayerEvents(video);
+  // 播放器内下载 / 缓存按钮（新增模块）
+  document.getElementById("playerDownload").onclick = function(){ downloadVideo(it, url, "playerProgress"); };
+  document.getElementById("playerCache").onclick = function(){ cacheVideo(it, url, "playerProgress"); };
+}
+function closePlayer(){
+  if(hls){ hls.destroy(); hls = null; }
+  const video = document.getElementById("playerVideo");
+  video.pause(); video.removeAttribute("src"); video.load();
+  // 清理离线缓存播放产生的 objectURL
+  if(window.__cacheObjUrl){ URL.revokeObjectURL(window.__cacheObjUrl); window.__cacheObjUrl = null; }
+  document.getElementById("playerProgress").innerHTML = "";
+  document.getElementById("playerOverlay").classList.remove("open");
+  if(detailItem) openDetail(detailItem);
+}
+function bindPlayerEvents(video){
+  const seek = document.getElementById("playerSeek");
+  const timeEl = document.getElementById("playerTime");
+  const ppBtn = document.getElementById("playerPlayPause");
+  video.addEventListener("timeupdate", function(){
+    if(video.duration){
+      seek.value = video.currentTime / video.duration * 1000;
+      timeEl.textContent = fmt(video.currentTime) + " / " + fmt(video.duration);
+    }
+  });
+  video.addEventListener("play", function(){ ppBtn.textContent = "暂停"; });
+  video.addEventListener("pause", function(){ ppBtn.textContent = "播放"; });
+  seek.addEventListener("input", function(){ if(video.duration) video.currentTime = seek.value/1000 * video.duration; });
+  ppBtn.onclick = function(){ video.paused ? video.play() : video.pause(); };
+  // 移动设备隐藏自带控件之外：点击画面显隐控制条
+  document.getElementById("playerWrap").onclick = function(e){
+    if(e.target === video){ document.getElementById("playerControls").classList.toggle("hidden"); }
+  };
+}
+function fmt(s){ s = Math.floor(s||0); const m=Math.floor(s/60), ss=s%60; return m + ":" + (ss<10?"0":"") + ss; }
+
+/* ---------- 8. 收藏页 ---------- */
+function renderFavorites(){
+  const favs = allDemo.filter(x => favorites.indexOf(favKey(x)) > -1)
+    .concat(tmdbMovies.filter(x => favorites.indexOf(favKey(x)) > -1))
+    .concat(tmdbTv.filter(x => favorites.indexOf(favKey(x)) > -1));
+  // 去重（演示数据与 TMDB 可能 id 冲突极小，按 type+id 去重）
+  const seen = {}; const uniq = [];
+  favs.forEach(x => { const k = favKey(x); if(!seen[k]){ seen[k]=1; uniq.push(x); } });
+  renderGrid("favGrid", uniq, "还没有收藏内容，去首页逛逛吧 ♥");
+}
+
+/* ---------- 9. 页面切换 ---------- */
+function showPage(name){
+  currentPage = name;   // 新增：记录当前页
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+  document.getElementById("page-" + name).classList.add("active");
+  document.querySelectorAll(".nav-item, #mobileNav button").forEach(b => {
+    b.classList.toggle("active", b.getAttribute("data-nav") === name);
+  });
+  if(name === "movies" && !tmdbMovies.length && !isDemo()) loadMoviesPage();
+  if(name === "tv" && !tmdbTv.length && !isDemo()) loadTvPage();
+  if(name === "favorites") renderFavorites();
+  if(name === "cache") renderCacheList();   // 新增：我的缓存页
+  window.scrollTo(0,0);
+  collectFocusables();
+}
+async function loadMoviesPage(){
+  const c = document.getElementById("moviesGrid");
+  c.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  try{
+    const list = isDemo() ? allDemo.filter(x=>x.type==="movie").sort(sortByYearDesc) : await loadTMDBMovies();
+    if(!isDemo()) tmdbMovies = list;
+    renderGrid("moviesGrid", list, "暂无电影数据");
+  }catch(e){ c.innerHTML = '<div class="empty">加载失败：' + e.message + '，请检查 API Key 或网络</div>'; }
+  collectFocusables();
+}
+async function loadTvPage(){
+  const c = document.getElementById("tvGrid");
+  c.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  try{
+    const list = isDemo() ? allDemo.filter(x=>x.type==="tv").sort(sortByYearDesc) : await loadTMDBTv();
+    if(!isDemo()) tmdbTv = list;
+    renderGrid("tvGrid", list, "暂无电视剧数据");
+  }catch(e){ c.innerHTML = '<div class="empty">加载失败：' + e.message + '，请检查 API Key 或网络</div>'; }
+  collectFocusables();
+}
+async function doSearch(q){
+  q = (q || "").trim();
+  if(!q){ showPage("home"); return; }
+  currentSearch = q;
+  showPage("search");
+  document.getElementById("searchTitle").textContent = "搜索：" + q;
+  const grid = document.getElementById("searchGrid");
+  grid.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  document.getElementById("searchStat").textContent = "电影 + 电视剧混合结果";
+  try{
+    const list = isDemo() ? searchDemo(q) : await searchTMDB(q);
+    grid.innerHTML = "";
+    if(!list.length){ grid.innerHTML = '<div class="empty">未找到与“' + q + '”相关的内容</div>'; }
+    else {
+      document.getElementById("searchStat").textContent = "共 " + list.length + " 条结果（电影 + 电视剧混合）";
+      renderGrid("searchGrid", list);
+    }
+  }catch(e){ grid.innerHTML = '<div class="empty">搜索失败：' + e.message + '</div>'; }
+  collectFocusables();
+}
+
+/* ---------- 10. 设置（数据源双模式） ---------- */
+function applyMode(){
+  const demo = isDemo();
+  const badge = document.getElementById("modeBadge");
+  badge.textContent = demo ? "演示模式（内置示例数据）" : "TMDB 模式（真实数据）";
+  badge.className = "mode-badge " + (demo ? "mode-demo" : "mode-tmdb");
+  document.getElementById("modeNotice").innerHTML = demo
+    ? "当前使用内置演示数据。填写上方 TMDB API Key 后自动切换为真实数据。"
+    : "数据来自 TMDB，电影 / 电视剧按年份最新到最旧排序。";
+  if(demo){ document.getElementById("tmdbKeyInput").value = ""; }
+  else { document.getElementById("tmdbKeyInput").value = tmdbKey; }
+}
+async function refreshAll(){
+  applyMode();
+  if(!isDemo()){
+    try{
+      const [m, t] = await Promise.all([loadTMDBMovies(), loadTMDBTv()]);
+      tmdbMovies = m; tmdbTv = t;
+    }catch(e){
+      // TMDB 失败时回退演示数据，避免白屏
+      currentMode = "demo";
+      localStorage.removeItem(LS_KEY);
+      applyMode();
+      tmdbMovies = []; tmdbTv = [];
+      alert("TMDB 连接失败：" + e.message + "，已自动回退演示模式");
+    }
+  } else { tmdbMovies = []; tmdbTv = []; }
+  await renderHome();
+  collectFocusables();
+}
+
+/* ---------- 11. 电视端遥控焦点管理 ---------- */
+// 收集所有可聚焦元素：卡片 / 导航 / 按钮 / Logo
+function collectFocusables(){
+  const scope = document;
+  const list = [];
+  scope.querySelectorAll(".card, .nav-item, #settingsBtn, .btn, .fav, .back-btn, #hamburger, .logo, #tvHintClose, #detailClose").forEach(function(x){
+    if(x.offsetParent !== null || x.id === "detailClose") list.push(x);
+  });
+  window.__focusList = list.filter(x => x.style.display !== "none");
+}
+// 计算元素中心点，方向键按几何最近原则移动焦点
+function moveFocus(dx, dy){
+  const list = window.__focusList || [];
+  if(!list.length){ collectFocusables(); }
+  const cur = document.activeElement;
+  const from = (cur && cur.getBoundingClientRect) ? cur.getBoundingClientRect() : { left:0, top:0, right:window.innerWidth, bottom:window.innerHeight, width:window.innerWidth, height:window.innerHeight };
+  const cx = (from.left + from.right) / 2, cy = (from.top + from.bottom) / 2;
+  let best = null, bestScore = Infinity;
+  list.forEach(function(n){
+    if(n === cur || n === document.activeElement) return;
+    const r = n.getBoundingClientRect();
+    const nx = (r.left + r.right)/2, ny = (r.top + r.bottom)/2;
+    const gdx = nx - cx, gdy = ny - cy;
+    // 必须朝目标方向移动
+    if(dx !== 0 && gdx * dx <= 0) return;
+    if(dy !== 0 && gdy * dy <= 0) return;
+    const score = gdx*gdx + gdy*gdy;
+    if(score < bestScore){ bestScore = score; best = n; }
+  });
+  if(best){ best.focus(); scrollIntoViewSafe(best); return true; }
+  return false;
+}
+function scrollIntoViewSafe(node){
+  if(node.scrollIntoView){ try{ node.scrollIntoView({ block:"nearest", inline:"nearest", behavior:"smooth" }); }catch(e){ node.scrollIntoView(); } }
+}
+document.addEventListener("keydown", function(e){
+  // 输入框内不劫持方向键（电视端搜索时可忽略）
+  if(document.activeElement && (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "TEXTAREA")) return;
+  const k = e.key;
+  const overlayOpen = document.getElementById("detailOverlay").classList.contains("open")
+    || document.getElementById("settingsOverlay").classList.contains("open")
+    || document.getElementById("playerOverlay").classList.contains("open");
+  if(k === "ArrowUp"){ e.preventDefault(); moveFocus(0,-1); }
+  else if(k === "ArrowDown"){ e.preventDefault(); moveFocus(0,1); }
+  else if(k === "ArrowLeft"){
+    e.preventDefault();
+    const row = document.activeElement && document.activeElement.closest ? document.activeElement.closest(".row-scroll") : null;
+    if(row){ row.scrollBy({ left:-260, behavior:"smooth" }); }
+    else if(!moveFocus(-1,0)){ /* 边界 */ }
+  }
+  else if(k === "ArrowRight"){
+    e.preventDefault();
+    const row = document.activeElement && document.activeElement.closest ? document.activeElement.closest(".row-scroll") : null;
+    if(row){ row.scrollBy({ left:260, behavior:"smooth" }); }
+    else if(!moveFocus(1,0)){ /* 边界 */ }
+  }
+  else if(k === "Enter" || k === " "){
+    const a = document.activeElement;
+    if(a && a.tagName === "BUTTON" && !overlayOpen){ e.preventDefault(); a.click(); }
+    else if(a && a.classList && a.classList.contains("card")){ e.preventDefault(); openCard(a); }
+  }
+  else if(k === "Escape"){
+    if(document.getElementById("playerOverlay").classList.contains("open")) closePlayer();
+    else if(document.getElementById("detailOverlay").classList.contains("open")) closeDetail();
+    else if(document.getElementById("settingsOverlay").classList.contains("open")) closeSettings();
+  }
+  else if(k === "Backspace" && overlayOpen){ e.preventDefault(); document.getElementById("playerOverlay").classList.contains("open") ? closePlayer() : (document.getElementById("detailOverlay").classList.contains("open") ? closeDetail() : closeSettings()); }
+});
+function openCard(cardEl){
+  const type = cardEl.getAttribute("data-type"), id = cardEl.getAttribute("data-id");
+  const it = findItem(type, id);
+  if(it) openDetail(it);
+}
+
+/* ---------- 12. 事件绑定 ---------- */
+function bindEvents(){
+  // 导航切换
+  document.querySelectorAll("[data-nav]").forEach(function(b){
+    b.addEventListener("click", function(){ showPage(b.getAttribute("data-nav")); });
+  });
+  // 汉堡菜单（手机端）
+  document.getElementById("hamburger").addEventListener("click", function(){
+    document.getElementById("mobileNav").classList.toggle("show");
+  });
+  // 顶部滚动阴影
+  window.addEventListener("scroll", function(){
+    document.getElementById("topbar").classList.toggle("scrolled", window.scrollY > 20);
+  });
+  // 搜索：回车 / 按钮
+  document.getElementById("searchInput").addEventListener("keydown", function(e){ if(e.key === "Enter"){ doSearch(this.value); } });
+  document.getElementById("searchBtn").addEventListener("click", function(){ doSearch(document.getElementById("searchInput").value); });
+  // 事件委托：卡片 / 收藏 / Hero 按钮
+  document.addEventListener("click", function(e){
+    const favBtn = e.target.closest ? e.target.closest(".fav") : null;
+    if(favBtn){
+      e.stopPropagation();
+      const cardEl = favBtn.closest(".card");
+      if(!cardEl) return;
+      const it = findItem(cardEl.getAttribute("data-type"), cardEl.getAttribute("data-id"));
+      if(it) toggleFav(it);
+      return;
+    }
+    const cardEl = e.target.closest ? e.target.closest(".card") : null;
+    if(cardEl){ openCard(cardEl); return; }
+    const playBtn = e.target.closest ? e.target.closest("[data-play]") : null;
+    if(playBtn){ const it = findItemByKey(playBtn.getAttribute("data-play")); if(it) openPlayer(it, it.videoUrl); return; }
+    const detailBtn = e.target.closest ? e.target.closest("[data-detail]") : null;
+    if(detailBtn){ const it = findItemByKey(detailBtn.getAttribute("data-detail")); if(it) openDetail(it); return; }
+  });
+  // 收藏按钮刷新（切换心形状态）
+  document.addEventListener("click", function(e){
+    if(e.target.closest && e.target.closest("#detailFav")){ /* 已在 bindDetailEvents 处理 */ }
+  });
+  // 设置
+  document.getElementById("settingsBtn").addEventListener("click", openSettings);
+  document.getElementById("settingsClose").addEventListener("click", closeSettings);
+  document.getElementById("saveKeyBtn").addEventListener("click", async function(){
+    const k = document.getElementById("tmdbKeyInput").value.trim();
+    if(!k){ alert("请先粘贴 TMDB API Key"); return; }
+    tmdbKey = k;
+    localStorage.setItem(LS_KEY, k);
+    currentMode = "tmdb";
+    closeSettings();
+    await refreshAll();
+    alert("已切换到 TMDB 模式，数据来自 TMDB");
+  });
+  document.getElementById("useDemoBtn").addEventListener("click", function(){
+    tmdbKey = ""; localStorage.removeItem(LS_KEY);
+    currentMode = "demo"; tmdbMovies = []; tmdbTv = [];
+    closeSettings();
+    refreshAll();
+  });
+  // 播放器返回
+  document.getElementById("playerBack").addEventListener("click", closePlayer);
+  // 电视提示条关闭
+  document.getElementById("tvHintClose").addEventListener("click", function(){
+    document.getElementById("tvHint").style.display = "none";
+    localStorage.setItem(LS_HINT, "1");
+  });
+  // 点击弹层背景关闭详情
+  document.getElementById("detailOverlay").addEventListener("click", function(e){
+    if(e.target === this) closeDetail();
+  });
+  document.getElementById("settingsOverlay").addEventListener("click", function(e){
+    if(e.target === this) closeSettings();
+  });
+}
+function openSettings(){
+  applyMode();
+  document.getElementById("settingsOverlay").classList.add("open");
+}
+function closeSettings(){
+  document.getElementById("settingsOverlay").classList.remove("open");
+}
+// 根据 favKey(type-id) 查找条目
+function findItemByKey(key){
+  const parts = key.split("-");
+  const type = parts.shift(), id = parts.join("-");
+  return findItem(type, id);
+}
+function refreshFavButtons(){
+  document.querySelectorAll(".fav").forEach(function(btn){
+    const k = btn.getAttribute("data-fav");
+    const on = favorites.indexOf(k) > -1;
+    btn.classList.toggle("on", on);
+    btn.textContent = on ? "♥" : "♡";
+  });
+}
+
+/* ==================== 新增模块：下载 / 离线缓存 ==================== */
+/* ---------- 12A. 下载到本地文件 ---------- */
+var currentPage = "home";   // 当前所在页面（缓存完成后刷新列表用）
+function esc(s){ return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;"); }
+function escAttr(s){ return esc(s); }
+function fmtSize(b){ if(b<1024) return b+" B"; if(b<1048576) return (b/1024).toFixed(1)+" KB"; return (b/1048576).toFixed(1)+" MB"; }
+function fmtTime(t){ const d = new Date(t); return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,'0') + "-" + String(d.getDate()).padStart(2,'0') + " " + String(d.getHours()).padStart(2,'0') + ":" + String(d.getMinutes()).padStart(2,'0'); }
+// 下载：fetch Blob + a[download]；m3u8 或 CORS 失败给出提示
+function downloadVideo(item, url, progressId){
+  if(/\.m3u8(\?|$)/i.test(url)){ alert("m3u8 为切片流，不支持直接下载完整视频，请复制地址到下载工具"); return; }
+  const c = document.getElementById(progressId);
+  const dom = '<div class="progress-wrap"><div class="progress-bar"><i></i></div><div class="progress-text">正在下载 ' + esc(item.title) + '…</div></div>';
+  c.innerHTML = dom;
+  const bar = c.querySelector(".progress-bar i"), txt = c.querySelector(".progress-text");
+  fetch(url).then(function(r){
+    if(!r.ok) throw new Error("HTTP " + r.status);
+    const total = parseInt(r.headers.get("Content-Length") || "0", 10);
+    const reader = r.body.getReader();
+    const chunks = []; let got = 0;
+    function pump(){
+      return reader.read().then(function(res){
+        if(res.done){
+          const blob = new Blob(chunks);
+          const a = document.createElement("a");
+          a.href = URL.createObjectURL(blob);
+          const ext = (url.split("?")[0].match(/\.(mp4|webm|mov|mkv)(\?|$)/i) || [,"mp4"])[1];
+          a.download = item.title.replace(/[\\/:*?"<>|]/g, "_") + "." + ext;
+          document.body.appendChild(a); a.click(); a.remove();
+          setTimeout(function(){ URL.revokeObjectURL(a.href); }, 5000);
+          c.innerHTML = '<div class="progress-text">✅ 下载完成：' + esc(item.title) + '</div>';
+          return;
+        }
+        chunks.push(res.value); got += res.value.length;
+        if(total){ const p = Math.min(100, Math.round(got / total * 100)); bar.style.width = p + "%"; txt.textContent = "正在下载 " + esc(item.title) + "… " + p + "% (" + fmtSize(got) + " / " + fmtSize(total) + ")"; }
+        else { txt.textContent = "正在下载 " + esc(item.title) + "… " + fmtSize(got); }
+        return pump();
+      });
+    }
+    return pump();
+  }).catch(function(e){
+    // CORS / 跨域 / 网络错误：引导复制地址
+    c.innerHTML = '<div class="progress-text err">该源不支持浏览器直接下载，请复制地址到下载工具</div>';
+  });
+}
+
+/* ---------- 12B. 离线缓存（IndexedDB: mc_cache） ---------- */
+const DB_NAME = "mc_cache", DB_VER = 1, STORE = "cache";
+function openDB(){
+  return new Promise(function(resolve, reject){
+    const req = indexedDB.open(DB_NAME, DB_VER);
+    req.onupgradeneeded = function(e){
+      const db = e.target.result;
+      if(!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE, { keyPath: "url" });
+    };
+    req.onsuccess = function(){ resolve(req.result); };
+    req.onerror = function(){ reject(req.error); };
+  });
+}
+// 缓存：fetch 直链 → Blob → IndexedDB；带进度条与取消；m3u8 提示暂不支持
+let cacheAbort = null;
+function cacheVideo(item, url, progressId){
+  if(/\.m3u8(\?|$)/i.test(url)){ alert("m3u8 流暂不支持离线缓存，可用下载按钮获取源文件"); return; }
+  const c = document.getElementById(progressId);
+  const dom = '<div class="progress-wrap"><div class="progress-bar"><i></i></div><div class="progress-text">正在缓存 ' + esc(item.title) + '…</div><button class="btn btn-gray" id="cacheCancel">取消</button></div>';
+  c.innerHTML = dom;
+  const bar = c.querySelector(".progress-bar i"), txt = c.querySelector(".progress-text");
+  const ac = new AbortController(); cacheAbort = ac;
+  c.querySelector("#cacheCancel").onclick = function(){ ac.abort(); };
+  fetch(url, { signal: ac.signal }).then(function(r){
+    if(!r.ok) throw new Error("HTTP " + r.status);
+    const total = parseInt(r.headers.get("Content-Length") || "0", 10);
+    const reader = r.body.getReader();
+    const chunks = []; let got = 0;
+    function pump(){
+      return reader.read().then(function(res){
+        if(res.done){
+          const blob = new Blob(chunks, { type: r.headers.get("Content-Type") || "video/mp4" });
+          return openDB().then(function(db){
+            return new Promise(function(resolve, reject){
+              const tx = db.transaction(STORE, "readwrite");
+              tx.objectStore(STORE).put({ url: url, title: item.title, type: item.type || "movie", poster: item.poster || "", size: blob.size, time: Date.now(), blob: blob });
+              tx.oncomplete = function(){ resolve(); };
+              tx.onerror = function(){ reject(tx.error); };
+              tx.onabort = function(){ reject(tx.error); };
+            });
+          }).then(function(){
+            c.innerHTML = '<div class="progress-text">✅ 已缓存：' + esc(item.title) + '，可在「我的缓存」离线播放</div>';
+            if(currentPage === "cache") renderCacheList();
+          });
+        }
+        chunks.push(res.value); got += res.value.length;
+        if(total){ const p = Math.min(100, Math.round(got / total * 100)); bar.style.width = p + "%"; txt.textContent = "正在缓存 " + esc(item.title) + "… " + p + "% (" + fmtSize(got) + " / " + fmtSize(total) + ")"; }
+        else { txt.textContent = "正在缓存 " + esc(item.title) + "… " + fmtSize(got); }
+        return pump();
+      });
+    }
+    return pump();
+  }).catch(function(e){
+    if(e && e.name === "AbortError"){ c.innerHTML = '<div class="progress-text">已取消缓存</div>'; return; }
+    if(e && e.name === "QuotaExceededError"){ c.innerHTML = '<div class="progress-text err">存储空间不足，请删除部分缓存</div>'; return; }
+    c.innerHTML = '<div class="progress-text err">缓存失败（可能跨域受限或网络异常）：' + esc(e.message) + '</div>';
+  }).finally(function(){ if(cacheAbort === ac) cacheAbort = null; });
+}
+// 读缓存列表并渲染「我的缓存」页
+async function renderCacheList(){
+  const stat = document.getElementById("cacheStat"), list = document.getElementById("cacheList");
+  try{
+    const db = await openDB();
+    const all = await new Promise(function(resolve, reject){
+      const tx = db.transaction(STORE, "readonly");
+      const req = tx.objectStore(STORE).getAll();
+      req.onsuccess = function(){ resolve(req.result || []); };
+      req.onerror = function(){ reject(req.error); };
+    });
+    const total = all.reduce(function(s, x){ return s + (x.size || 0); }, 0);
+    stat.textContent = "共 " + all.length + " 条缓存 · " + fmtSize(total);
+    if(!all.length){ list.innerHTML = '<div class="empty">还没有离线缓存，去详情页点「📦 缓存」吧</div>'; return; }
+    all.sort(function(a, b){ return b.time - a.time; });
+    list.innerHTML = all.map(function(x){
+      return '<div class="cache-item">'
+        + '<div class="cache-poster"><img src="' + escAttr(x.poster || "") + '" alt="" onerror="this.style.display=\'none\'"></div>'
+        + '<div class="cache-info"><div class="cache-title">' + esc(x.title) + '</div>'
+        + '<div class="cache-meta">' + fmtSize(x.size) + ' · ' + fmtTime(x.time) + '</div></div>'
+        + '<div class="cache-actions">'
+        + '<button class="btn btn-play btn-sm" data-cache-play="' + escAttr(x.url) + '">▶ 播放</button>'
+        + '<button class="btn btn-gray btn-sm" data-cache-del="' + escAttr(x.url) + '">🗑 删除</button>'
+        + '</div></div>';
+    }).join("");
+    // 播放 / 删除
+    list.querySelectorAll("[data-cache-play]").forEach(function(b){
+      b.onclick = function(){ playCached(b.getAttribute("data-cache-play")); };
+    });
+    list.querySelectorAll("[data-cache-del]").forEach(function(b){
+      b.onclick = function(){ removeCached(b.getAttribute("data-cache-del"), b); };
+    });
+    collectFocusables();
+  }catch(e){
+    stat.textContent = "缓存读取失败：" + e.message;
+  }
+}
+// 从 IndexedDB 读 Blob → objectURL → 交给现有播放器
+async function playCached(url){
+  try{
+    const db = await openDB();
+    const rec = await new Promise(function(resolve, reject){
+      const tx = db.transaction(STORE, "readonly");
+      const req = tx.objectStore(STORE).get(url);
+      req.onsuccess = function(){ resolve(req.result); };
+      req.onerror = function(){ reject(req.error); };
+    });
+    if(!rec){ alert("缓存记录不存在"); return; }
+    if(window.__cacheObjUrl) URL.revokeObjectURL(window.__cacheObjUrl);
+    window.__cacheObjUrl = URL.createObjectURL(rec.blob);
+    openPlayer({ title: rec.title, type: rec.type, year: "", rating: 0, poster: rec.poster || "", videoUrl: rec.url }, window.__cacheObjUrl);
+  }catch(e){ alert("播放缓存失败：" + e.message); }
+}
+// 删除缓存：二次确认
+async function removeCached(url, btn){
+  if(!confirm("确认删除该离线缓存？")) return;
+  try{
+    const db = await openDB();
+    await new Promise(function(resolve, reject){
+      const tx = db.transaction(STORE, "readwrite");
+      tx.objectStore(STORE).delete(url);
+      tx.oncomplete = function(){ resolve(); };
+      tx.onerror = function(){ reject(tx.error); };
+    });
+    renderCacheList();
+  }catch(e){ alert("删除失败：" + e.message); }
+}
+/* ==================== 新增模块结束 ==================== */
+
+/* ---------- 13. 初始化 ---------- */
+async function init(){
+  // 设置模式：有 Key 用 TMDB，无 Key 演示
+  currentMode = tmdbKey ? "tmdb" : "demo";
+  applyMode();
+  // 电视端提示条：宽屏且有遥控器场景显示一次
+  if(window.innerWidth >= 1024 && !localStorage.getItem(LS_HINT)){
+    document.getElementById("tvHint").style.display = "flex";
+  }
+  await refreshAll();
+  collectFocusables();
+  // 截图模式：确保内容渲染完成
+  if(IS_PREVIEW){
+    document.body.classList.add("preview");
+    try{
+      if(allDemo && allDemo.length) openDetail(allDemo[0]);
+      var dl0 = document.getElementById("detailOverlay");
+      if(dl0) dl0.setAttribute("data-open", dl0.classList.contains("open") ? "yes" : "no");
+    }catch(err){
+      var b0 = document.createElement("div");
+      b0.style.cssText = "position:fixed;left:0;top:0;z-index:99999;color:#0f0;background:#000;font-size:20px;padding:10px";
+      b0.textContent = "ERR:" + (err && err.message);
+      document.body.appendChild(b0);
+    }
+  }
+}
+document.addEventListener("DOMContentLoaded", init);
+</script>
+</body>
+</html>
+
